@@ -7,6 +7,7 @@ import { loadTextures } from '../lib/textures';
 import { useViewport } from '../hooks/useViewport';
 import { useTouchControls } from '../hooks/useTouchControls';
 import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
+import { usePointerLock } from '../hooks/usePointerLock';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useGameStore } from '../store/gameStore';
 
@@ -26,24 +27,37 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const { blocks } = useGameStore();
   const app = useApp();
   const containerRef = useRef<PIXI.Container>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const interactionEnabled = useRef(true);
+  const { isLocked, requestLock, exitLock } = usePointerLock(canvasRef);
+  const lastPointerPos = useRef({ x: 0, y: 0 });
 
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     if (!interactionEnabled.current) return;
     
+    // Handle pointer lock movement
+    if (isLocked) {
+      lastPointerPos.current.x += e.movementX;
+      lastPointerPos.current.y += e.movementY;
+    } else {
+      lastPointerPos.current = e.global;
+    }
+    
     console.log('🖱️ Pointer move:', {
       type: e.type,
-      position: e.global,
+      position: isLocked ? lastPointerPos.current : e.global,
+      movement: isLocked ? { x: e.movementX, y: e.movementY } : null,
       buttons: e.buttons,
       pressure: e.pressure,
       pointerType: e.pointerType
     });
     
     // Convert global coordinates to local space
+    const pos = isLocked ? lastPointerPos.current : e.global;
     const localPos = new PIXI.Point(
-      (e.global.x - viewport.x) / viewport.scale,
-      (e.global.y - viewport.y) / viewport.scale
+      (pos.x - viewport.x) / viewport.scale,
+      (pos.y - viewport.y) / viewport.scale
     );
     
     // Convert from isometric to cartesian
@@ -64,21 +78,34 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     }
   }, [onTileHover]);
 
+  useEffect(() => {
+    if (app.view) {
+      canvasRef.current = app.view as HTMLCanvasElement;
+    }
+  }, [app.view]);
+
   const handleClick = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     if (!interactionEnabled.current) return;
+    
+    // Request pointer lock on first click if not already locked
+    if (!isLocked && e.pointerType === 'mouse') {
+      requestLock();
+      return;
+    }
     
     console.log('🎯 Click event details:', {
       type: e.type,
       button: e.button,
       pressure: e.pressure,
       pointerType: e.pointerType,
+      locked: isLocked,
       target: e.target.constructor.name,
       currentTarget: e.currentTarget.constructor.name
     });
     
     // Get global position and convert to container space
-    const globalPos = e.global;
+    const globalPos = isLocked ? lastPointerPos.current : e.global;
     const localPos = new PIXI.Point(
       (globalPos.x - viewport.x) / viewport.scale,
       (globalPos.y - viewport.y) / viewport.scale
@@ -260,6 +287,7 @@ export const IsometricGrid = () => {
           wheel: true,
           globalClick: true
         }
+        if (isLocked) exitLock();
       }}
     >
       <IsometricGridContent
