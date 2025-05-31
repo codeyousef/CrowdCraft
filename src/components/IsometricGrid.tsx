@@ -1,26 +1,34 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { Stage, Container, Sprite, useApp, Graphics } from '@pixi/react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
 import { loadTextures } from '../lib/textures';
 import { useGameStore } from '../store/gameStore';
 import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
+import { useViewport } from '../hooks/useViewport';
+import { TilePool } from '../lib/TilePool';
 import { GRID_SIZE, TILE_CONFIG } from '../types/game';
 
 const IsometricGridContent: React.FC<{
   textures: Record<string, PIXI.Texture>;
-  viewportCenter: { x: number; y: number };
+  viewport: { x: number; y: number; scale: number };
   onTileHover: (tile: { x: number; y: number } | null) => void;
   onTileClick: () => void;
   hoveredTile: { x: number; y: number } | null;
-}> = ({ textures, viewportCenter, onTileHover, onTileClick, hoveredTile }) => {
+}> = ({ textures, viewport, onTileHover, onTileClick, hoveredTile }) => {
   const { blocks } = useGameStore();
   const app = useApp();
+  const tilePoolRef = useRef<TilePool>();
+  
+  useEffect(() => {
+    tilePoolRef.current = new TilePool(textures);
+    return () => tilePoolRef.current?.clear();
+  }, [textures]);
 
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
     const localPos = e.getLocalPosition(e.currentTarget);
-    const screenX = localPos.x;
-    const screenY = localPos.y;
+    const screenX = (localPos.x - viewport.x) / viewport.scale;
+    const screenY = (localPos.y - viewport.y) / viewport.scale;
     
     const cartesian = isometricToCartesian(screenX, screenY);
     if (cartesian.x >= 0 && cartesian.x < GRID_SIZE && cartesian.y >= 0 && cartesian.y < GRID_SIZE) {
@@ -28,12 +36,13 @@ const IsometricGridContent: React.FC<{
     } else {
       onTileHover(null);
     }
-  }, [onTileHover]);
+  }, [onTileHover, viewport]);
 
   return (
     <Container 
-      x={viewportCenter.x} 
-      y={viewportCenter.y}
+      x={viewport.x}
+      y={viewport.y}
+      scale={viewport.scale}
       eventMode="static"
       onpointerdown={onTileClick}
       onpointermove={handleMove}
@@ -61,16 +70,13 @@ const IsometricGridContent: React.FC<{
       {Array.from(blocks.entries()).map(([key, block]) => {
         const [x, y] = key.split(',').map(Number);
         const { isoX, isoY } = cartesianToIsometric(x, y);
+        const sprite = tilePoolRef.current?.getSprite(x, y, block.type);
+        
+        if (!sprite) return null;
         
         return (
           <Container key={key} x={isoX} y={isoY}>
-            <Sprite
-              texture={textures[block.type]}
-              anchor={0.5}
-              width={TILE_CONFIG.width}
-              height={TILE_CONFIG.height}
-              alpha={0.9}
-            />
+            {sprite}
           </Container>
         );
       })}
@@ -103,6 +109,7 @@ export const IsometricGrid = () => {
   const { placeBlock } = useGameStore();
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
   const [textures, setTextures] = useState<Record<string, PIXI.Texture>>();
+  const viewport = useViewport();
   const worldId = useGameStore(state => state.worldId);
 
   // Subscribe to real-time updates
@@ -116,11 +123,6 @@ export const IsometricGrid = () => {
     if (!hoveredTile) return;
     placeBlock(hoveredTile.x, hoveredTile.y);
   }, [hoveredTile, placeBlock]);
-
-  const viewportCenter = useMemo(() => ({
-    x: window.innerWidth / 2,
-    y: window.innerHeight / 2
-  }), []);
 
   if (!textures) {
     return null;
@@ -138,7 +140,7 @@ export const IsometricGrid = () => {
     >
       <IsometricGridContent
         textures={textures}
-        viewportCenter={viewportCenter}
+        viewport={viewport}
         onTileHover={setHoveredTile}
         onTileClick={handleClick}
         hoveredTile={hoveredTile}
