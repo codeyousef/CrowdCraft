@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 export const useRealtimeBlocks = (worldId: string) => {
   const updateBlock = useGameStore(state => state.updateBlock);
   const retryRef = useRef<number>(0);
-  const maxRetries = 3;
+  const maxRetries = 20; // Increased from 3 to 20 for better resilience
   
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
