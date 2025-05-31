@@ -1,3 +1,28 @@
+import { useCallback, useState, useEffect, useRef } from 'react';
+import { Container, Sprite, Graphics, Stage, useApp } from '@pixi/react';
+import * as PIXI from 'pixi.js';
+import { Block } from '../types/game';
+import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
+import { TILE_CONFIG, GRID_SIZE } from '../types/game';
+import { loadTextures } from '../lib/textures';
+import { useViewport } from '../hooks/useViewport';
+import { useTouchControls } from '../hooks/useTouchControls';
+import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { useGameStore } from '../store/gameStore';
+
+interface IsometricGridContentProps {
+  textures: Record<string, PIXI.Texture>;
+  viewport: {
+    x: number;
+    y: number;
+    scale: number;
+  };
+  onTileHover: (tile: { x: number; y: number } | null) => void;
+  onTileClick: (x: number, y: number) => void;
+  hoveredTile: { x: number; y: number } | null;
+}
+
 const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, hoveredTile }: IsometricGridContentProps) => {
   const { blocks } = useGameStore();
   const app = useApp();
