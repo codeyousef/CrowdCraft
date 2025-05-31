@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
+import { Stage, Container, Graphics, useApp } from '@pixi/react';
 import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
 import { loadTextures } from '../lib/textures';
 import { useGameStore } from '../store/gameStore';
