@@ -3,9 +3,11 @@
   "dependencies": {
     "@pixi/react": "^7.1.1",
     "@pixi/core": "^7.3.2",
+    "@supabase/supabase-js": "^2.39.3",
     "pixi.js": "^7.3.2",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "zustand": "^4.5.0"
   },
   "scripts": {
     "dev": "vite"
