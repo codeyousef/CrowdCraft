@@ -88,6 +88,18 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     if (!containerRef.current) return;
     if (!interactionEnabled.current) return;
     
+    console.log('🎯 Click event received:', {
+      type: e.type,
+      position: e.global,
+      target: e.target?.constructor.name,
+      currentTarget: e.currentTarget?.constructor.name,
+      eventMode: containerRef.current.eventMode,
+      interactive: containerRef.current.interactive,
+      hitArea: containerRef.current.hitArea,
+      worldTransform: containerRef.current.worldTransform.toArray(),
+      localTransform: containerRef.current.localTransform.toArray()
+    });
+    
     console.log('🔍 Click event details:', {
       type: e.type,
       eventPhase: e.eventPhase,
@@ -292,20 +304,14 @@ export const IsometricGrid = () => {
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
-      eventMode="passive"
+      eventMode="static"
+      options={{ 
       options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
-        hello: true,
-        eventFeatures: {
-          move: true,
-          globalMove: true,
-          click: true,
-          wheel: true,
-          globalClick: true
-        }
+        eventFeatures: { click: true, move: true, wheel: true }
         if (isLocked) exitLock();
       }}
     >
