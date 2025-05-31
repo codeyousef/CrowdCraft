@@ -5,7 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { WorldTimer } from './components/WorldTimer';
 import { DebugOverlay } from './components/DebugOverlay';
 import { useCurrentWorld } from './hooks/useCurrentWorld';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface DebugMessage {
   text: string;
@@ -15,6 +15,12 @@ interface DebugMessage {
 function App() {
   useCurrentWorld();
   const [debugMessages, setDebugMessages] = useState<DebugMessage[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+
+  const toggleDebug = useCallback(() => {
+    setShowDebug(prev => !prev);
+    console.log('Debug overlay toggled');
+  }, []);
 
   useEffect(() => {
     const originalConsoleLog = console.log;
@@ -49,13 +55,25 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === '`' || (e.ctrlKey && e.key === 'd')) {
+        e.preventDefault();
+        toggleDebug();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [toggleDebug]);
+
   return (
     <ErrorBoundary>
       <div className="h-screen w-screen overflow-hidden bg-background text-text-primary">
         <WorldTimer />
         <IsometricGrid />
         <BlockSelector />
-        <DebugOverlay messages={debugMessages} />
+        {showDebug && <DebugOverlay messages={debugMessages} />}
       </div>
     </ErrorBoundary>
   );
