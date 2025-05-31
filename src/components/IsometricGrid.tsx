@@ -26,11 +26,7 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     
-    const localPos = e.getLocalPosition(containerRef.current);
-    const worldPos = {
-      x: (localPos.x - viewport.x) / viewport.scale,
-      y: (localPos.y - viewport.y) / viewport.scale
-    };
+    const worldPos = e.getLocalPosition(containerRef.current);
     
     const cartesian = isometricToCartesian(worldPos.x, worldPos.y);
     const x = Math.floor(cartesian.x);
@@ -95,13 +91,17 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       {/* Debug output for coordinates */}
       <Graphics
         draw={g => {
-          if (hoveredTile) {
-            const { isoX, isoY } = cartesianToIsometric(hoveredTile.x, hoveredTile.y);
-            g.lineStyle(0);
-            g.beginFill(0xFFFFFF, 0.5);
-            g.drawCircle(isoX, isoY, 3);
-            g.endFill();
-          }
+          const { isoX, isoY } = hoveredTile 
+            ? cartesianToIsometric(hoveredTile.x, hoveredTile.y)
+            : { isoX: 0, isoY: 0 };
+          
+          g.clear();
+          if (!hoveredTile) return;
+          
+          g.lineStyle(0);
+          g.beginFill(0xFFFFFF, 0.8);
+          g.drawCircle(isoX, isoY, 4);
+          g.endFill();
         }}
       />
       
