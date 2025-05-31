@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
 import { loadTextures } from '../lib/textures';
