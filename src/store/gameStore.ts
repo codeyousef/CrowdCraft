@@ -43,15 +43,22 @@ export const useGameStore = create<GameState>((set, get) => ({
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
-    console.log(`🎯 Attempting to place ${currentTool} at (${x}, ${y}) by ${userName}`);
+    
     if (!worldId) {
       console.warn('❌ Cannot place block: No active world');
       return;
     }
     
-    // Validate coordinates
+    // Strict coordinate validation
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
-      console.warn(`❌ Invalid coordinates (${x}, ${y}): Must be within 0-${GRID_SIZE-1}`);
+      console.warn(`❌ Invalid coordinates (${x}, ${y}): Must be integers within 0-${GRID_SIZE-1}`);
+      return;
+    }
+    
+    // Check if block already exists
+    const existingBlock = blocks.get(key);
+    if (existingBlock) {
+      console.log(`ℹ️ Block already exists at (${x}, ${y}): ${existingBlock.type} by ${existingBlock.placedBy}`);
       return;
     }
     
@@ -59,13 +66,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const recentPlacements = Array.from(blocks.values())
       .filter(block => block.placedBy === userName && Date.now() - block.placedAt < 1000);
     if (recentPlacements.length >= 10) {
-      console.warn('⚠️ Rate limit exceeded: Wait a moment before placing more blocks');
+      console.warn('⚠️ Slow down! You can place up to 10 blocks per second');
       return;
     }
     
+    console.log(`🎯 ${userName} placing ${currentTool} at (${x}, ${y})`);
     const now = new Date().toISOString();
     
-    console.log(`🔄 Optimistically updating block at (${x}, ${y})`);
     // Optimistic update
     set({
       blocks: new Map(blocks).set(key, {

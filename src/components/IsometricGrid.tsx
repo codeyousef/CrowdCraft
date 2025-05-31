@@ -49,24 +49,23 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const handleClick = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     
-    // Get the global position and adjust for viewport
-    const globalPos = e.global;
-    const worldX = (globalPos.x - viewport.x) / viewport.scale;
-    const worldY = (globalPos.y - viewport.y) / viewport.scale;
+    // Get position in container's coordinate space
+    const localPos = e.getLocalPosition(containerRef.current);
     
     // Convert from isometric to cartesian
-    const cartesian = isometricToCartesian(worldX, worldY);
+    const cartesian = isometricToCartesian(localPos.x, localPos.y);
     const x = Math.floor(cartesian.x);
     const y = Math.floor(cartesian.y);
     
     console.log('Click detected:', {
-      global: globalPos,
-      world: { x: worldX, y: worldY },
+      local: localPos,
       tile: { x, y }
     });
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
       onTileClick(x, y);
+    } else {
+      console.log('Click outside grid bounds:', { x, y });
     }
   }, [onTileClick, viewport]);
 
