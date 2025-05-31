@@ -3,5 +3,8 @@
     "@pixi/react": "^7.1.1",
     "@pixi/core": "^7.3.2",
     "pixi.js": "^7.3.2"
+  },
+  "scripts": {
+    "dev": "vite"
   }
 }
