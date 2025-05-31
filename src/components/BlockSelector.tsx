@@ -1,3 +1,4 @@
+import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { BlockType } from '../types/game';
 

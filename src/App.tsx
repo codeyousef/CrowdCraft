@@ -1,3 +1,4 @@
+import React from 'react';
 import { IsometricGrid } from './components/IsometricGrid';
 import { BlockSelector } from './components/BlockSelector';
 
