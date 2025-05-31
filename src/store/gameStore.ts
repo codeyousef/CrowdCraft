@@ -43,14 +43,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
-    console.log(`Placing block: type=${currentTool}, pos=(${x},${y}), user=${userName}`);
+    console.log(`Attempting to place block: type=${currentTool}, pos=(${x},${y}), user=${userName}`);
     if (!worldId) {
       console.warn('No active world or Supabase connection');
       return;
     }
     
     // Validate coordinates
-    if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
       console.warn(`Invalid coordinates: (${x}, ${y}). Must be within 0-${GRID_SIZE-1}`);
       return;
     }
