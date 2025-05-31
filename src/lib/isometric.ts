@@ -16,13 +16,20 @@ export const cartesianToIsometric = (x: number, y: number): IsometricPoint => {
 export const isometricToCartesian = (isoX: number, isoY: number): Point => {
   // Ensure inputs are numbers and handle potential NaN
   if (typeof isoX !== 'number' || typeof isoY !== 'number' || isNaN(isoX) || isNaN(isoY)) {
-    console.warn('Invalid coordinates provided to isometricToCartesian:', { isoX, isoY });
+    console.error('Invalid coordinates provided to isometricToCartesian:', { isoX, isoY });
     return { x: 0, y: 0 };
   }
 
   // Correct inverse transformation
   const x = (isoX / (TILE_CONFIG.width / 2) + isoY / (TILE_CONFIG.height / 2)) / 2;
   const y = (isoY / (TILE_CONFIG.height / 2) - isoX / (TILE_CONFIG.width / 2)) / 2;
+  
+  console.log('Coordinate conversion:', {
+    iso: { x: isoX, y: isoY },
+    cartesian: { x, y },
+    rounded: { x: Math.floor(x), y: Math.floor(y) }
+  });
+  
   return { x, y };  // Don't floor here - let the caller decide
 };
 

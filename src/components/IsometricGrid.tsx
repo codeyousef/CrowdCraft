@@ -49,8 +49,12 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const handleClick = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     
-    // Get position in container's coordinate space
-    const localPos = e.getLocalPosition(containerRef.current);
+    // Get global position and convert to container space
+    const globalPos = e.global;
+    const localPos = new PIXI.Point(
+      (globalPos.x - viewport.x) / viewport.scale,
+      (globalPos.y - viewport.y) / viewport.scale
+    );
     
     // Convert from isometric to cartesian
     const cartesian = isometricToCartesian(localPos.x, localPos.y);
@@ -58,11 +62,14 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     const y = Math.floor(cartesian.y);
     
     console.log('Click detected:', {
+      global: globalPos,
       local: localPos,
+      viewport: viewport,
       tile: { x, y }
     });
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+      console.log('Valid click - placing block at:', { x, y });
       onTileClick(x, y);
     } else {
       console.log('Click outside grid bounds:', { x, y });
@@ -100,7 +107,7 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       <Graphics
         draw={g => {
           g.clear();
-          g.lineStyle(1, 0x334155, 0.2);
+          g.lineStyle(1, 0x334155, 0.3);
           
           // Draw grid lines
           for (let i = 0; i <= GRID_SIZE; i++) {
@@ -132,8 +139,8 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
           <Graphics
             draw={g => {
               g.clear();
-              g.lineStyle(2, 0x6366F1, 0.8);
-              g.beginFill(0x6366F1, 0.2);
+              g.lineStyle(2, 0x6366F1, 1);
+              g.beginFill(0x6366F1, 0.3);
               
               // Draw diamond shape for isometric tile
               g.moveTo(0, -TILE_CONFIG.height / 2);
@@ -188,16 +195,7 @@ export const IsometricGrid = () => {
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
         powerPreference: 'high-performance',
-        preserveDrawingBuffer: true,
-        // Add context lost/restore handlers
-        contextLost: () => {
-          console.warn('WebGL context lost - attempting to recover');
-          setTextures(undefined);
-        },
-        contextRestored: () => {
-          console.log('WebGL context restored');
-          loadTextures().then(setTextures);
-        }
+        preserveDrawingBuffer: true
       }}
     >
       <IsometricGridContent
