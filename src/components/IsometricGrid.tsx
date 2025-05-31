@@ -304,6 +304,7 @@ export const IsometricGrid = () => {
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
+      style={{ position: 'fixed', zIndex: 1 }}
       eventMode="static"
       options={{ 
         backgroundColor: 0x0F172A,

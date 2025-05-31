@@ -69,11 +69,13 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="h-screen w-screen overflow-hidden bg-background text-text-primary">
+      <div className="relative h-screen w-screen overflow-hidden bg-background text-text-primary">
         <WorldTimer />
         <IsometricGrid />
         <BlockSelector />
-        {showDebug && <DebugOverlay messages={debugMessages} />}
+        <div className="relative z-10">
+          {showDebug && <DebugOverlay messages={debugMessages} />}
+        </div>
       </div>
     </ErrorBoundary>
   );
