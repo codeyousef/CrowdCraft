@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Block, BlockType, Point } from '../types/game';
+import { Block, BlockType, Point, GRID_SIZE } from '../types/game';
 import { supabase } from '../lib/supabase';
 import { nanoid } from 'nanoid';
 
