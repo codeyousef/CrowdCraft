@@ -1,7 +1,7 @@
-import { Stage, Container, Sprite, useApp } from '@pixi/react';
+import { Stage, Container, Sprite, useApp, Graphics } from '@pixi/react';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import * as PIXI from 'pixi.js';
-import { cartesianToIsometric } from '../lib/isometric';
+import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
 import { loadTextures } from '../lib/textures';
 import { useGameStore } from '../store/gameStore';
 import { GRID_SIZE, TILE_CONFIG } from '../types/game';
