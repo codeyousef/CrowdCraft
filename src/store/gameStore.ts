@@ -39,8 +39,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
-    if (!worldId) {
-      console.warn('No active world');
+    if (!worldId || !supabase) {
+      console.warn('No active world or Supabase connection');
       return;
     }
     
@@ -76,12 +76,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
         
       if (error) throw error;
-    } catch (error) {
+    } catch (error: any) {
       // Rollback on error
       const newBlocks = new Map(get().blocks);
       newBlocks.delete(key);
       set({ blocks: newBlocks });
-      console.error('Failed to place block:', error);
+      console.error('Failed to place block:', error.message);
+      if (error.message?.includes('FetchError')) {
+        console.error('Connection to Supabase failed. Please check your network connection.');
+      }
     }
   },
 

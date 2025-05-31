@@ -10,6 +10,11 @@ export const useCurrentWorld = () => {
   
   useEffect(() => {
     const loadCurrentWorld = async () => {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return;
+      }
+
       try {
         const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
@@ -40,18 +45,26 @@ export const useCurrentWorld = () => {
           if (createError) throw createError;
           world = newWorld;
         }
+      } catch (error: any) {
+        console.error('Failed to load current world:', error.message);
+        if (error.message?.includes('FetchError')) {
+          console.error('Connection to Supabase failed. Please check your environment variables and network connection.');
+        }
+        return;
+      }
         
-        if (world) {
-          setWorldId(world.id);
-          const resetAt = new Date(world.reset_at);
-          const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - Date.now()) / 1000));
-          setWorldTimer(remainingTime);
-          
+      if (world) {
+        setWorldId(world.id);
+        const resetAt = new Date(world.reset_at);
+        const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - Date.now()) / 1000));
+        setWorldTimer(remainingTime);
+        
+        try {
           const { data: blocks, error: blocksError } = await supabase
             .from('blocks')
             .select()
             .eq('world_id', world.id);
-            
+          
           if (blocksError) throw blocksError;
           
           if (blocks) {
@@ -65,9 +78,9 @@ export const useCurrentWorld = () => {
             });
             setBlocks(blockMap);
           }
+        } catch (error: any) {
+          console.error('Failed to load blocks:', error.message);
         }
-      } catch (error) {
-        console.error('Failed to load current world:', error);
       }
     };
     
