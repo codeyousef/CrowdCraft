@@ -86,8 +86,7 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       x={viewport.x}
       y={viewport.y}
       scale={viewport.scale}
-      eventMode="static"
-      interactive={true}
+      eventMode="dynamic"
       onpointerdown={handleClick}
       onpointermove={handleMove}
       sortableChildren={true}
@@ -178,11 +177,22 @@ export const IsometricGrid = () => {
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
+      onContextLost={() => {
+        console.warn('WebGL context lost - attempting to recover');
+        // Force a re-render which will recreate the context
+        setTextures(undefined);
+      }}
+      onContextRestored={() => {
+        console.log('WebGL context restored');
+        loadTextures().then(setTextures);
+      }}
       options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
-        autoDensity: true
+        autoDensity: true,
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: true
       }}
     >
       <IsometricGridContent
