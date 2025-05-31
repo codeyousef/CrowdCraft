@@ -1,24 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../types/supabase';
 
-// Generate a stable anonymous ID
-const getAnonymousId = () => {
-  let id = localStorage.getItem('anonymousId');
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem('anonymousId', id);
-  }
-  return id;
-};
-
 export const supabase = createClient<Database>(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-  {
-    global: {
-      headers: {
-        'x-anonymous-id': getAnonymousId()
-      }
-    }
-  }
+  import.meta.env.VITE_SUPABASE_ANON_KEY
 );
+
+// Sign in anonymously if not already signed in
+const signInAnonymously = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    await supabase.auth.signInAnonymously();
+  }
+};
+
+signInAnonymously();
