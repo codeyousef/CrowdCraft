@@ -177,22 +177,22 @@ export const IsometricGrid = () => {
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
-      onContextLost={() => {
-        console.warn('WebGL context lost - attempting to recover');
-        // Force a re-render which will recreate the context
-        setTextures(undefined);
-      }}
-      onContextRestored={() => {
-        console.log('WebGL context restored');
-        loadTextures().then(setTextures);
-      }}
       options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
         powerPreference: 'high-performance',
-        preserveDrawingBuffer: true
+        preserveDrawingBuffer: true,
+        // Add context lost/restore handlers
+        contextLost: () => {
+          console.warn('WebGL context lost - attempting to recover');
+          setTextures(undefined);
+        },
+        contextRestored: () => {
+          console.log('WebGL context restored');
+          loadTextures().then(setTextures);
+        }
       }}
     >
       <IsometricGridContent
