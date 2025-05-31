@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
-import { Stage, Container, Graphics, useApp } from '@pixi/react';
+import { Stage, Container, Graphics, Sprite, useApp } from '@pixi/react';
 import { LoadingSpinner } from './LoadingSpinner';
 import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
 import { loadTextures } from '../lib/textures';
@@ -8,24 +8,17 @@ import { useGameStore } from '../store/gameStore';
 import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
 import { useViewport } from '../hooks/useViewport';
 import { useTouchControls } from '../hooks/useTouchControls';
-import { TilePool } from '../lib/TilePool';
 import { GRID_SIZE, TILE_CONFIG } from '../types/game';
 
-const IsometricGridContent: React.FC<{
+interface IsometricGridContentProps {
   textures: Record<string, PIXI.Texture>;
   viewport: { x: number; y: number; scale: number };
   onTileHover: (tile: { x: number; y: number } | null) => void;
   onTileClick: () => void;
   hoveredTile: { x: number; y: number } | null;
-}> = ({ textures, viewport, onTileHover, onTileClick, hoveredTile }) => {
+}
   const { blocks } = useGameStore();
   const app = useApp();
-  const tilePoolRef = useRef<TilePool>();
-  
-  useEffect(() => {
-    tilePoolRef.current = new TilePool(textures);
-    return () => tilePoolRef.current?.clear();
-  }, [textures]);
 
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
     const localPos = e.getLocalPosition(e.currentTarget);
@@ -33,13 +26,31 @@ const IsometricGridContent: React.FC<{
     const screenY = (localPos.y - viewport.y) / viewport.scale;
     
     const cartesian = isometricToCartesian(screenX, screenY);
-    if (cartesian.x >= 0 && cartesian.x < GRID_SIZE && cartesian.y >= 0 && cartesian.y < GRID_SIZE) {
+    const x = Math.floor(cartesian.x);
+    const y = Math.floor(cartesian.y);
+    
+    if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
       onTileHover(cartesian);
     } else {
       onTileHover(null);
     }
   }, [onTileHover, viewport]);
 
+  const renderBlock = useCallback((key: string, block: Block) => {
+    const [x, y] = key.split(',').map(Number);
+    const { isoX, isoY } = cartesianToIsometric(x, y);
+    
+    return (
+      <Container key={key} x={isoX} y={isoY}>
+        <Sprite
+          texture={textures[block.type]}
+          anchor={0.5}
+          width={TILE_CONFIG.width}
+          height={TILE_CONFIG.height}
+        />
+      </Container>
+    );
+  }, [textures]);
   return (
     <Container 
       x={viewport.x}
@@ -48,6 +59,7 @@ const IsometricGridContent: React.FC<{
       eventMode="static"
       onpointerdown={onTileClick}
       onpointermove={handleMove}
+      sortableChildren={true}
     >
       {/* Grid lines for reference */}
       {Array.from({ length: GRID_SIZE + 1 }, (_, i) => (
@@ -69,24 +81,13 @@ const IsometricGridContent: React.FC<{
         </Container>
       ))}
       
-      {Array.from(blocks.entries()).map(([key, block]) => {
-        const [x, y] = key.split(',').map(Number);
-        const { isoX, isoY } = cartesianToIsometric(x, y);
-        const sprite = tilePoolRef.current?.getSprite(x, y, block.type);
-        
-        if (!sprite) return null;
-        
-        return (
-          <Container key={key} x={isoX} y={isoY}>
-            {sprite}
-          </Container>
-        );
-      })}
+      {Array.from(blocks.entries()).map(([key, block]) => renderBlock(key, block))}
       
       {hoveredTile && (
         <Container 
           x={cartesianToIsometric(hoveredTile.x, hoveredTile.y).isoX}
           y={cartesianToIsometric(hoveredTile.x, hoveredTile.y).isoY}
+          zIndex={1000}
         >
           <Graphics
             draw={g => {
@@ -126,7 +127,7 @@ export const IsometricGrid = () => {
 
   const handleClick = useCallback(() => {
     if (!hoveredTile) return;
-    placeBlock(hoveredTile.x, hoveredTile.y);
+    placeBlock(Math.floor(hoveredTile.x), Math.floor(hoveredTile.y));
   }, [hoveredTile, placeBlock]);
 
   if (!textures) {
