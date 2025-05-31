@@ -1,56 +1,122 @@
-import { Stage, Container, Sprite } from '@pixi/react';
-import { useCallback, useEffect, useState } from 'react';
+import { Stage, Container, Sprite, useApp } from '@pixi/react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import * as PIXI from 'pixi.js';
 import { cartesianToIsometric } from '../lib/isometric';
+import { loadTextures } from '../lib/textures';
 import { useGameStore } from '../store/gameStore';
 import { GRID_SIZE, TILE_CONFIG } from '../types/game';
-
-const BLOCK_TEXTURES = {
-  grass: '🌱',
-  water: '🌊',
-  stone: '🪨',
-  wood: '🪵',
-  house: '🏠',
-  tree: '🌳'
-};
 
 export const IsometricGrid = () => {
   const { blocks, placeBlock } = useGameStore();
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
+  const [textures, setTextures] = useState<Record<string, PIXI.Texture>>();
+  const app = useApp();
+
+  useEffect(() => {
+    loadTextures().then(setTextures);
+  }, []);
 
   const handleClick = useCallback((e: any) => {
     if (!hoveredTile) return;
     placeBlock(hoveredTile.x, hoveredTile.y);
   }, [hoveredTile, placeBlock]);
 
+  const viewportCenter = useMemo(() => ({
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2
+  }), []);
+
   const handleMove = useCallback((e: any) => {
     const bounds = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - bounds.left;
     const y = e.clientY - bounds.top;
     
-    // Convert to isometric coordinates
-    // TODO: Implement proper coordinate conversion
-    setHoveredTile({ x: Math.floor(x / TILE_CONFIG.width), y: Math.floor(y / TILE_CONFIG.height) });
-  }, []);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const screenX = e.clientX - rect.left - viewportCenter.x;
+    const screenY = e.clientY - rect.top - viewportCenter.y;
+    
+    const cartesian = isometricToCartesian(screenX, screenY);
+    if (cartesian.x >= 0 && cartesian.x < GRID_SIZE && cartesian.y >= 0 && cartesian.y < GRID_SIZE) {
+      setHoveredTile(cartesian);
+    } else {
+      setHoveredTile(null);
+    }
+  }, [viewportCenter]);
+
+  if (!textures) {
+    return null;
+  }
 
   return (
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
-      options={{ backgroundColor: 0x0F172A }}
+      options={{ 
+        backgroundColor: 0x0F172A,
+        antialias: true,
+        resolution: window.devicePixelRatio || 1
+      }}
       onPointerMove={handleMove}
       onPointerDown={handleClick}
     >
-      <Container x={window.innerWidth / 2} y={window.innerHeight / 2}>
+      <Container x={viewportCenter.x} y={viewportCenter.y}>
+        {/* Grid lines for reference */}
+        {Array.from({ length: GRID_SIZE + 1 }, (_, i) => (
+          <Container key={`grid-${i}`}>
+            <Graphics
+              draw={g => {
+                g.lineStyle(1, 0x334155, 0.2);
+                const start = cartesianToIsometric(i, 0);
+                const end = cartesianToIsometric(i, GRID_SIZE);
+                g.moveTo(start.isoX, start.isoY);
+                g.lineTo(end.isoX, end.isoY);
+                
+                const vStart = cartesianToIsometric(0, i);
+                const vEnd = cartesianToIsometric(GRID_SIZE, i);
+                g.moveTo(vStart.isoX, vStart.isoY);
+                g.lineTo(vEnd.isoX, vEnd.isoY);
+              }}
+            />
+          </Container>
+        ))}
+        
         {Array.from(blocks.entries()).map(([key, block]) => {
           const [x, y] = key.split(',').map(Number);
           const { isoX, isoY } = cartesianToIsometric(x, y);
           
           return (
             <Container key={key} x={isoX} y={isoY}>
-              <text text={BLOCK_TEXTURES[block.type]} anchor={0.5} />
+              <Sprite
+                texture={textures[block.type]}
+                anchor={0.5}
+                width={TILE_CONFIG.width}
+                height={TILE_CONFIG.height}
+                alpha={0.9}
+              />
             </Container>
           );
         })}
+        
+        {hoveredTile && (
+          <Container 
+            x={cartesianToIsometric(hoveredTile.x, hoveredTile.y).isoX}
+            y={cartesianToIsometric(hoveredTile.x, hoveredTile.y).isoY}
+          >
+            <Graphics
+              draw={g => {
+                g.lineStyle(2, 0x6366F1, 0.8);
+                g.beginFill(0x6366F1, 0.2);
+                g.drawRect(
+                  -TILE_CONFIG.width / 2,
+                  -TILE_CONFIG.height / 2,
+                  TILE_CONFIG.width,
+                  TILE_CONFIG.height
+                );
+                g.endFill();
+              }}
+            />
+          </Container>
+        )}
       </Container>
     </Stage>
   );
