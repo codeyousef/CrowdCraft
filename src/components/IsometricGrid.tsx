@@ -4,6 +4,7 @@ import * as PIXI from 'pixi.js';
 import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
 import { loadTextures } from '../lib/textures';
 import { useGameStore } from '../store/gameStore';
+import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
 import { GRID_SIZE, TILE_CONFIG } from '../types/game';
 
 const IsometricGridContent: React.FC<{
@@ -102,6 +103,10 @@ export const IsometricGrid = () => {
   const { placeBlock } = useGameStore();
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
   const [textures, setTextures] = useState<Record<string, PIXI.Texture>>();
+  const worldId = useGameStore(state => state.worldId);
+
+  // Subscribe to real-time updates
+  useRealtimeBlocks(worldId || '');
 
   useEffect(() => {
     loadTextures().then(setTextures);

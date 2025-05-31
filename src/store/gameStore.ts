@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Block, BlockType, Point } from '../types/game';
+import { supabase } from '../lib/supabase';
 
 interface GameState {
   blocks: Map<string, Block>;
@@ -7,8 +8,10 @@ interface GameState {
   userName: string;
   activeUsers: Set<string>;
   worldTimer: number;
+  worldId: string | null;
   placeBlock: (x: number, y: number) => void;
   setCurrentTool: (tool: BlockType) => void;
+  updateBlock: (x: number, y: number, block: Omit<Block, 'placedAt'>) => void;
 }
 
 const generateAnimalName = () => {
@@ -23,11 +26,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   userName: generateAnimalName(),
   activeUsers: new Set(),
   worldTimer: 1800, // 30 minutes
+  worldId: null,
 
-  placeBlock: (x: number, y: number) => {
+  placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
-    const { currentTool, userName, blocks } = get();
+    const { currentTool, userName, blocks, worldId } = get();
+    if (!worldId) return;
     
+    // Optimistic update
     set({
       blocks: new Map(blocks).set(key, {
         type: currentTool,
@@ -35,7 +41,37 @@ export const useGameStore = create<GameState>((set, get) => ({
         placedAt: Date.now()
       })
     });
+    
+    try {
+      const { error } = await supabase
+        .from('blocks')
+        .insert({
+          x,
+          y,
+          block_type: currentTool,
+          placed_by: userName,
+          world_id: worldId
+        });
+        
+      if (error) throw error;
+    } catch (error) {
+      // Rollback on error
+      const newBlocks = new Map(get().blocks);
+      newBlocks.delete(key);
+      set({ blocks: newBlocks });
+      console.error('Failed to place block:', error);
+    }
   },
 
-  setCurrentTool: (tool: BlockType) => set({ currentTool: tool })
+  setCurrentTool: (tool: BlockType) => set({ currentTool: tool }),
+  
+  updateBlock: (x: number, y: number, block: Omit<Block, 'placedAt'>) => {
+    const key = `${x},${y}`;
+    set(state => ({
+      blocks: new Map(state.blocks).set(key, {
+        ...block,
+        placedAt: Date.now()
+      })
+    }));
+  }
 }));
