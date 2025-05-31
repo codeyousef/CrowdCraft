@@ -21,13 +21,17 @@ interface IsometricGridContentProps {
 const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, hoveredTile }: IsometricGridContentProps) => {
   const { blocks } = useGameStore();
   const app = useApp();
+  const containerRef = useRef<PIXI.Container>(null);
 
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
-    const localPos = e.getLocalPosition(e.currentTarget.parent);
+    if (!containerRef.current) return;
+    
+    const localPos = e.getLocalPosition(containerRef.current);
     const worldPos = {
       x: (localPos.x - viewport.x) / viewport.scale,
       y: (localPos.y - viewport.y) / viewport.scale
     };
+    
     const cartesian = isometricToCartesian(worldPos.x, worldPos.y);
     const x = Math.floor(cartesian.x);
     const y = Math.floor(cartesian.y);
@@ -57,6 +61,7 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
 
   return (
     <Container 
+      ref={containerRef}
       x={viewport.x}
       y={viewport.y}
       scale={viewport.scale}
@@ -86,6 +91,19 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       ))}
       
       {Array.from(blocks.entries()).map(([key, block]) => renderBlock(key, block))}
+      
+      {/* Debug output for coordinates */}
+      <Graphics
+        draw={g => {
+          if (hoveredTile) {
+            const { isoX, isoY } = cartesianToIsometric(hoveredTile.x, hoveredTile.y);
+            g.lineStyle(0);
+            g.beginFill(0xFFFFFF, 0.5);
+            g.drawCircle(isoX, isoY, 3);
+            g.endFill();
+          }
+        }}
+      />
       
       {hoveredTile && (
         <Container 
