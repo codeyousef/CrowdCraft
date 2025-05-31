@@ -132,7 +132,14 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       x={viewport.x}
       y={viewport.y}
       scale={viewport.scale}
-      eventMode="static"
+      eventMode="dynamic"
+      cursor="pointer"
+      hitArea={new PIXI.Rectangle(
+        -GRID_SIZE * TILE_CONFIG.width,
+        -GRID_SIZE * TILE_CONFIG.height,
+        GRID_SIZE * TILE_CONFIG.width * 2,
+        GRID_SIZE * TILE_CONFIG.height * 2
+      )}
       onpointerdown={handleClick}
       onpointermove={handleMove}
       sortableChildren={true}
@@ -229,13 +236,18 @@ export const IsometricGrid = () => {
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
+      eventMode="static"
       options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
-        powerPreference: 'high-performance',
-        preserveDrawingBuffer: true
+        eventFeatures: {
+          move: true,
+          globalMove: true,
+          click: true,
+          wheel: true
+        }
       }}
     >
       <IsometricGridContent
