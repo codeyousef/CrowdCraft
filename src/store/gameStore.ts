@@ -56,68 +56,43 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
     
-    // Strict coordinate validation
-    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
-      console.warn(`❌ Invalid coordinates (${x}, ${y}): Must be integers within 0-${GRID_SIZE-1}`);
-      return;
-    }
-    
     // Check if block already exists
     const existingBlock = blocks.get(key);
     if (existingBlock) {
-      console.log('ℹ️ Block already exists:', {
-        coordinates: { x, y },
-        type: existingBlock.type,
-        placedBy: existingBlock.placedBy,
-        placedAt: new Date(existingBlock.placedAt).toISOString()
-      });
+      console.log('ℹ️ Block already exists at:', { x, y });
       return;
     }
     
-    // Check rate limit locally
-    const recentPlacements = Array.from(blocks.values())
-      .filter(block => block.placedBy === userName && Date.now() - block.placedAt < 1000);
-    if (recentPlacements.length >= 10) {
-      console.warn('⚠️ Slow down! You can place up to 10 blocks per second');
-      return;
-    }
-    const now = new Date().toISOString();
+    const now = Date.now();
     
-    // Optimistic update
+    // Place block locally first (optimistic update)
     set({
       blocks: new Map(blocks).set(key, {
         type: currentTool,
         placedBy: userName,
-        placedAt: new Date(now).getTime()
+        placedAt: now
       })
     });
     
+    // Try to save to database
     try {
       const { error } = await supabase
         .from('blocks')
-        .upsert({
+        .insert({
           x: Math.floor(x),
           y: Math.floor(y),
           block_type: currentTool,
           placed_by: userName,
           world_id: worldId,
-          placed_at: now
-        }, {
-          onConflict: '(x, y, world_id)',
-          ignoreDuplicates: false
+          placed_at: new Date(now).toISOString()
         });
         
       if (error) throw error;
-      console.log(`✅ Successfully placed ${currentTool} at (${x}, ${y})`);
+      console.log(`✅ Successfully saved ${currentTool} at (${x}, ${y}) to database`);
     } catch (error: any) {
-      // Rollback on error
-      const newBlocks = new Map(get().blocks);
-      newBlocks.delete(key);
-      set({ blocks: newBlocks });
-      console.error(`❌ Failed to place block at (${x}, ${y}): ${error.message}`);
-      if (error.message?.includes('FetchError')) {
-        console.error('🌐 Connection to Supabase failed: Check your network connection');
-      }
+      console.error(`⚠️ Failed to save block to database: ${error.message}`);
+      console.log('Block remains in local state only');
+      // Don't rollback - keep the local block even if database save fails
     }
   },
 

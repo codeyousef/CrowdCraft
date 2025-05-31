@@ -7,7 +7,6 @@ import { loadTextures } from '../lib/textures';
 import { useViewport } from '../hooks/useViewport';
 import { useTouchControls } from '../hooks/useTouchControls';
 import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
-import { usePointerLock } from '../hooks/usePointerLock';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useGameStore } from '../store/gameStore';
 
@@ -27,49 +26,17 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const { blocks } = useGameStore();
   const app = useApp();
   const containerRef = useRef<PIXI.Container>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const interactionEnabled = useRef(true);
-  const { isLocked, requestLock, exitLock } = usePointerLock(canvasRef);
-  const lastPointerPos = useRef({ x: 0, y: 0 });
 
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
-    if (!interactionEnabled.current) return;
     
-    // Handle pointer lock movement
-    if (isLocked) {
-      lastPointerPos.current.x += e.movementX;
-      lastPointerPos.current.y += e.movementY;
-    } else {
-      lastPointerPos.current = e.global;
-    }
+    // Convert global coordinates relative to the container
+    const localPos = containerRef.current.toLocal(e.global);
     
-    console.log('🖱️ Pointer move:', {
-      type: e.type,
-      position: isLocked ? lastPointerPos.current : e.global,
-      movement: isLocked ? { x: e.movementX, y: e.movementY } : null,
-      buttons: e.buttons,
-      pressure: e.pressure,
-      pointerType: e.pointerType
-    });
-    
-    // Convert global coordinates to local space
-    const pos = isLocked ? lastPointerPos.current : e.global;
-    const localPos = new PIXI.Point(
-      (pos.x - viewport.x) / viewport.scale,
-      (pos.y - viewport.y) / viewport.scale
-    );
-    
-    // Convert from isometric to cartesian
+    // Convert from isometric to cartesian and add centering offset
     const cartesian = isometricToCartesian(localPos.x, localPos.y);
-    const x = Math.floor(cartesian.x);
-    const y = Math.floor(cartesian.y);
-    
-    console.log('📍 Hover coordinates:', {
-      local: localPos,
-      cartesian: { x, y },
-      inBounds: x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE
-    });
+    const x = Math.floor(cartesian.x + GRID_SIZE/2);
+    const y = Math.floor(cartesian.y + GRID_SIZE/2);
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
       onTileHover({ x, y });
@@ -78,106 +45,30 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     }
   }, [onTileHover]);
 
-  useEffect(() => {
-    if (app.view) {
-      canvasRef.current = app.view as HTMLCanvasElement;
-    }
-  }, [app.view]);
 
   const handleClick = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
-    if (!interactionEnabled.current) return;
-    
-    console.log('🎯 Click event received:', {
-      type: e.type,
-      position: e.global,
-      target: e.target?.constructor.name,
-      currentTarget: e.currentTarget?.constructor.name,
-      eventMode: containerRef.current.eventMode,
-      interactive: containerRef.current.interactive,
-      hitArea: containerRef.current.hitArea,
-      worldTransform: containerRef.current.worldTransform.toArray(),
-      localTransform: containerRef.current.localTransform.toArray()
-    });
-    
-    console.log('🔍 Click event details:', {
-      type: e.type,
-      eventPhase: e.eventPhase,
-      propagationStopped: e.propagationStopped,
-      propagationImmediatelyStopped: e.propagationImmediatelyStopped,
-      defaultPrevented: e.defaultPrevented,
-      cancelBubble: e.cancelBubble,
-      target: {
-        type: e.target?.constructor.name,
-        interactive: e.target?.eventMode,
-        visible: e.target?.visible,
-        parent: e.target?.parent?.constructor.name
-      },
-      currentTarget: {
-        type: e.currentTarget?.constructor.name,
-        interactive: e.currentTarget?.eventMode,
-        visible: e.currentTarget?.visible,
-        parent: e.currentTarget?.parent?.constructor.name
-      },
-      global: e.global,
-      buttons: e.buttons,
-      pressure: e.pressure,
-      pointerType: e.pointerType,
-      isPrimary: e.isPrimary
-    });
-
-    // Request pointer lock on first click if not already locked
-    if (!isLocked && e.pointerType === 'mouse') {
-      requestLock();
-      return;
-    }
     
     e.stopPropagation();
     e.preventDefault();
     
-    // Get global position and convert to container space
-    const globalPos = isLocked ? lastPointerPos.current : e.global;
-    const localPos = new PIXI.Point(
-      (globalPos.x - viewport.x) / viewport.scale,
-      (globalPos.y - viewport.y) / viewport.scale
-    );
+    // Convert global coordinates relative to the container
+    const localPos = containerRef.current.toLocal(e.global);
     
-    // Convert from isometric to cartesian
+    // Convert from isometric to cartesian and add centering offset
     const cartesian = isometricToCartesian(localPos.x, localPos.y);
-    const x = Math.floor(cartesian.x);
-    const y = Math.floor(cartesian.y);
-
-    console.log('🎮 Click coordinates:', {
-      global: globalPos,
-      local: localPos,
-      viewport: viewport,
-      tile: { x, y },
-      container: {
-        position: containerRef.current?.position,
-        scale: containerRef.current?.scale,
-        worldTransform: containerRef.current?.worldTransform
-      }
-    });
+    const x = Math.floor(cartesian.x + GRID_SIZE/2);
+    const y = Math.floor(cartesian.y + GRID_SIZE/2);
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
-      console.log('✨ Valid click - attempting to place block:', { 
-        x, y, 
-        inBounds: true,
-        gridSize: GRID_SIZE 
-      });
       onTileClick(x, y);
-    } else {
-      console.warn('⚠️ Click outside grid bounds:', { 
-        x, y, 
-        gridSize: GRID_SIZE,
-        reason: `Coordinates must be between 0 and ${GRID_SIZE-1}`
-      });
     }
-  }, [onTileClick, viewport]);
+  }, [onTileClick]);
 
   const renderBlock = useCallback((key: string, block: Block) => {
     const [x, y] = key.split(',').map(Number);
-    const { isoX, isoY } = cartesianToIsometric(x, y);
+    // Center the grid by offsetting coordinates
+    const { isoX, isoY } = cartesianToIsometric(x - GRID_SIZE/2, y - GRID_SIZE/2);
     
     return (
       <Container key={key} x={isoX} y={isoY} zIndex={x + y}>
@@ -199,15 +90,12 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       scale={viewport.scale}
       eventMode="static"
       cursor="pointer"
-      interactive={true}
       hitArea={new PIXI.Rectangle(
-        -GRID_SIZE * TILE_CONFIG.width,
-        -GRID_SIZE * TILE_CONFIG.height,
-        GRID_SIZE * TILE_CONFIG.width * 2,
-        GRID_SIZE * TILE_CONFIG.height * 2
+        -GRID_SIZE * TILE_CONFIG.width / 2,
+        -GRID_SIZE * TILE_CONFIG.height / 2,
+        GRID_SIZE * TILE_CONFIG.width,
+        GRID_SIZE * TILE_CONFIG.height
       )}
-      onpointerenter={() => { interactionEnabled.current = true; }}
-      onpointerleave={() => { interactionEnabled.current = false; }}
       onpointerdown={handleClick}
       onpointermove={handleMove}
       sortableChildren={true}
@@ -218,17 +106,17 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
           g.clear();
           g.lineStyle(1, 0x334155, 0.3);
           
-          // Draw grid lines
+          // Draw grid lines (centered)
           for (let i = 0; i <= GRID_SIZE; i++) {
             // Horizontal lines
-            const hStart = cartesianToIsometric(i, 0);
-            const hEnd = cartesianToIsometric(i, GRID_SIZE);
+            const hStart = cartesianToIsometric(i - GRID_SIZE/2, 0 - GRID_SIZE/2);
+            const hEnd = cartesianToIsometric(i - GRID_SIZE/2, GRID_SIZE - GRID_SIZE/2);
             g.moveTo(hStart.isoX, hStart.isoY);
             g.lineTo(hEnd.isoX, hEnd.isoY);
             
             // Vertical lines
-            const vStart = cartesianToIsometric(0, i);
-            const vEnd = cartesianToIsometric(GRID_SIZE, i);
+            const vStart = cartesianToIsometric(0 - GRID_SIZE/2, i - GRID_SIZE/2);
+            const vEnd = cartesianToIsometric(GRID_SIZE - GRID_SIZE/2, i - GRID_SIZE/2);
             g.moveTo(vStart.isoX, vStart.isoY);
             g.lineTo(vEnd.isoX, vEnd.isoY);
           }
@@ -241,8 +129,8 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       {/* Hover indicator */}
       {hoveredTile && (
         <Container 
-          x={cartesianToIsometric(hoveredTile.x, hoveredTile.y).isoX}
-          y={cartesianToIsometric(hoveredTile.x, hoveredTile.y).isoY}
+          x={cartesianToIsometric(hoveredTile.x - GRID_SIZE/2, hoveredTile.y - GRID_SIZE/2).isoX}
+          y={cartesianToIsometric(hoveredTile.x - GRID_SIZE/2, hoveredTile.y - GRID_SIZE/2).isoY}
           zIndex={1000}
         >
           <Graphics
@@ -304,14 +192,16 @@ export const IsometricGrid = () => {
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
-      style={{ position: 'fixed', zIndex: 1 }}
+      style={{ position: 'fixed', zIndex: 1, pointerEvents: 'auto' }}
       eventMode="static"
       options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
-        eventFeatures: { click: true, move: true, wheel: true }
+        eventFeatures: { click: true, move: true, wheel: true },
+        preserveDrawingBuffer: true,
+        powerPreference: 'default'
       }}
     >
       <IsometricGridContent

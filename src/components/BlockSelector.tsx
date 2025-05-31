@@ -1,7 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { BlockType } from '../types/game';
-import { usePointerLock } from '../hooks/usePointerLock';
 
 const BLOCKS: { type: BlockType; emoji: string }[] = [
   { type: 'grass', emoji: '🌱' },
@@ -14,36 +13,31 @@ const BLOCKS: { type: BlockType; emoji: string }[] = [
 
 export const BlockSelector = () => {
   const { currentTool, setCurrentTool } = useGameStore();
-  const { isLocked, exitLock } = usePointerLock({ current: document.body });
+  
+  console.log('BlockSelector rendering with currentTool:', currentTool);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-surface/90 backdrop-blur border-t border-border">
-      <div className="flex items-center justify-between gap-2 p-4">
-        <div className="flex items-center gap-2">
+    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
         {BLOCKS.map(({ type, emoji }) => (
           <button
             key={type}
-            onClick={() => {
-              setCurrentTool(type);
-              if (isLocked) exitLock();
+            onClick={() => setCurrentTool(type)}
+            style={{
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '24px',
+              backgroundColor: currentTool === type ? '#3b82f6' : '#6b7280'
             }}
-            className={`w-12 h-12 flex items-center justify-center rounded-lg transition-colors ${
-              currentTool === type ? 'bg-primary' : 'bg-surface-hover'
-            }`}
           >
-            <span className="text-2xl">{emoji}</span>
+            {emoji}
           </button>
         ))}
-        </div>
-        {isLocked && (
-          <button
-            onClick={exitLock}
-            className="px-4 py-2 bg-surface-hover hover:bg-primary rounded-lg text-sm"
-          >
-            Exit Mouse Lock (Esc)
-          </button>
-        )}
       </div>
-    </div>
   );
 };

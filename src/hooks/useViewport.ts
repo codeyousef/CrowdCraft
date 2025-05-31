@@ -10,8 +10,8 @@ interface ViewportState {
 export const useViewport = () => {
   const [viewport, setViewport] = useState<ViewportState>({
     x: window.innerWidth / 2,
-    y: window.innerHeight / 2,
-    scale: 1
+    y: window.innerHeight / 3, // Position grid higher to account for UI elements
+    scale: 0.8 // Start zoomed out a bit
   });
   
   const [isDragging, setIsDragging] = useState(false);
@@ -57,19 +57,20 @@ export const useViewport = () => {
   
   useEffect(() => {
     window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('pointerdown', handleDragStart);
-    window.addEventListener('pointermove', handleDragMove);
-    window.addEventListener('pointerup', handleDragEnd);
-    window.addEventListener('pointerleave', handleDragEnd);
+    // Disable global drag handlers to prevent interference with grid clicks
+    // window.addEventListener('pointerdown', handleDragStart);
+    // window.addEventListener('pointermove', handleDragMove);
+    // window.addEventListener('pointerup', handleDragEnd);
+    // window.addEventListener('pointerleave', handleDragEnd);
     
     return () => {
       window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('pointerdown', handleDragStart);
-      window.removeEventListener('pointermove', handleDragMove);
-      window.removeEventListener('pointerup', handleDragEnd);
-      window.removeEventListener('pointerleave', handleDragEnd);
+      // window.removeEventListener('pointerdown', handleDragStart);
+      // window.removeEventListener('pointermove', handleDragMove);
+      // window.removeEventListener('pointerup', handleDragEnd);
+      // window.removeEventListener('pointerleave', handleDragEnd);
     };
-  }, [handleWheel, handleDragStart, handleDragMove, handleDragEnd]);
+  }, [handleWheel]);
   
   return viewport;
 };

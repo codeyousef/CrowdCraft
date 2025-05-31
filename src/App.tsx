@@ -1,80 +1,160 @@
 import React from 'react';
-import { IsometricGrid } from './components/IsometricGrid';
 import { BlockSelector } from './components/BlockSelector';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { WorldTimer } from './components/WorldTimer';
-import { DebugOverlay } from './components/DebugOverlay';
-import { useCurrentWorld } from './hooks/useCurrentWorld';
-import { useState, useEffect, useCallback } from 'react';
+import { useGameStore } from './store/gameStore';
+import { supabase } from './lib/supabase';
+import { useState, useEffect } from 'react';
 
 interface DebugMessage {
   text: string;
   timestamp: number;
 }
 
-function App() {
-  useCurrentWorld();
-  const [debugMessages, setDebugMessages] = useState<DebugMessage[]>([]);
-  const [showDebug, setShowDebug] = useState(false);
+// Simple grid component
+const SimpleGrid = () => {
+  const { currentTool, placeBlock, blocks } = useGameStore();
+  const [hoveredCell, setHoveredCell] = useState<{x: number, y: number} | null>(null);
 
-  const toggleDebug = useCallback(() => {
-    setShowDebug(prev => !prev);
-    console.log('Debug overlay toggled');
-  }, []);
-
-  useEffect(() => {
-    const originalConsoleLog = console.log;
-    const originalConsoleWarn = console.warn;
-    const originalConsoleError = console.error;
-
-    function addMessage(text: string) {
-      setDebugMessages(prev => [...prev.slice(-50), { text, timestamp: Date.now() }]);
+  const handleCellClick = async (x: number, y: number) => {
+    console.log('Clicking cell:', x, y, 'with tool:', currentTool);
+    try {
+      await placeBlock(x, y);
+      console.log('Block placed successfully');
+    } catch (error) {
+      console.error('Error placing block:', error);
     }
+  };
 
-    console.log = (...args) => {
-      originalConsoleLog.apply(console, args);
-      addMessage(args.map(arg => 
-        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-      ).join(' '));
-    };
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(20, 30px)',
+      gridTemplateRows: 'repeat(20, 30px)',
+      gap: '1px',
+      backgroundColor: '#334155',
+      padding: '10px',
+      borderRadius: '8px',
+      marginBottom: '20px'
+    }}>
+      {Array.from({length: 400}, (_, i) => {
+        const x = i % 20;
+        const y = Math.floor(i / 20);
+        const key = `${x},${y}`;
+        const block = blocks.get(key);
+        const isHovered = hoveredCell?.x === x && hoveredCell?.y === y;
+        
+        return (
+          <div
+            key={i}
+            style={{
+              width: '30px',
+              height: '30px',
+              backgroundColor: block ? getBlockColor(block.type) : (isHovered ? '#6366f1' : '#1e293b'),
+              border: '1px solid #475569',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px'
+            }}
+            onClick={() => handleCellClick(x, y)}
+            onMouseEnter={() => setHoveredCell({x, y})}
+            onMouseLeave={() => setHoveredCell(null)}
+          >
+            {block && getBlockEmoji(block.type)}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
-    console.warn = (...args) => {
-      originalConsoleWarn.apply(console, args);
-      addMessage(`⚠️ ${args.join(' ')}`);
-    };
+const getBlockColor = (type: string) => {
+  const colors = {
+    grass: '#10B981',
+    water: '#06B6D4', 
+    stone: '#6B7280',
+    wood: '#92400E',
+    house: '#DC2626',
+    tree: '#059669'
+  };
+  return colors[type as keyof typeof colors] || '#6B7280';
+};
 
-    console.error = (...args) => {
-      originalConsoleError.apply(console, args);
-      addMessage(`🔴 ${args.join(' ')}`);
-    };
+const getBlockEmoji = (type: string) => {
+  const emojis = {
+    grass: '🌱',
+    water: '🌊',
+    stone: '🪨',
+    wood: '🪵',
+    house: '🏠',
+    tree: '🌳'
+  };
+  return emojis[type as keyof typeof emojis] || '';
+};
 
-    return () => {
-      console.log = originalConsoleLog;
-      console.warn = originalConsoleWarn;
-      console.error = originalConsoleError;
-    };
-  }, []);
-
+function App() {
+  const { currentTool, worldId, setWorldId } = useGameStore();
+  
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === '`' || (e.ctrlKey && e.key === 'd')) {
-        e.preventDefault();
-        toggleDebug();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [toggleDebug]);
+    // Set a test world ID and ensure it exists
+    if (!worldId) {
+      const createWorld = async () => {
+        // Generate a proper UUID for the world
+        const testWorldId = crypto.randomUUID();
+        
+        try {
+          // Create world in database
+          const { error } = await supabase
+            .from('worlds')
+            .insert({
+              id: testWorldId,
+              reset_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+              total_blocks: 0,
+              unique_builders: 0
+            });
+            
+          if (error) throw error;
+          
+          setWorldId(testWorldId);
+          console.log('✅ Created world in database:', testWorldId);
+        } catch (error: any) {
+          console.error('Failed to create world:', error.message);
+          // Still set the world ID for local testing
+          setWorldId(testWorldId);
+          console.log('⚠️ Using local world only:', testWorldId);
+        }
+      };
+      
+      createWorld();
+    }
+  }, [worldId, setWorldId]);
 
   return (
     <ErrorBoundary>
-      <div className="relative h-screen w-screen overflow-hidden bg-background text-text-primary">
-        <WorldTimer />
-        <IsometricGrid />
-        <BlockSelector />
-        <div className="relative z-10">
-          {showDebug && <DebugOverlay messages={debugMessages} />}
+      <div style={{
+        height: '100vh',
+        width: '100vw',
+        backgroundColor: '#0F172A',
+        color: '#F8FAFC',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <h1 style={{marginBottom: '20px', fontSize: '24px'}}>CrowdCraft</h1>
+        <p style={{marginBottom: '10px'}}>Current tool: {currentTool}</p>
+        <p style={{marginBottom: '10px', fontSize: '14px'}}>
+          World ID: {worldId || 'None'} | Blocks: {useGameStore(state => state.blocks.size)}
+        </p>
+        <SimpleGrid />
+        <div style={{
+          backgroundColor: '#1e293b',
+          borderTop: '2px solid #6366f1',
+          padding: '16px',
+          borderRadius: '8px'
+        }}>
+          <BlockSelector />
         </div>
       </div>
     </ErrorBoundary>
