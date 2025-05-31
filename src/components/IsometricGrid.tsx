@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import * as PIXI from 'pixi.js';
 import { Stage, Container, Graphics, useApp } from '@pixi/react';
+import { LoadingSpinner } from './LoadingSpinner';
 import { cartesianToIsometric, isometricToCartesian } from '../lib/isometric';
 import { loadTextures } from '../lib/textures';
 import { useGameStore } from '../store/gameStore';
@@ -125,7 +126,7 @@ export const IsometricGrid = () => {
   }, [hoveredTile, placeBlock]);
 
   if (!textures) {
-    return null;
+    return <LoadingSpinner />;
   }
 
   return (
