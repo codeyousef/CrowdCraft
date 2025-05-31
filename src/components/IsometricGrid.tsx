@@ -23,16 +23,17 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const app = useApp();
 
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
-    const localPos = e.getLocalPosition(e.currentTarget);
-    const screenX = (localPos.x - viewport.x) / viewport.scale;
-    const screenY = (localPos.y - viewport.y) / viewport.scale;
-    
-    const cartesian = isometricToCartesian(screenX, screenY);
+    const localPos = e.getLocalPosition(e.currentTarget.parent);
+    const worldPos = {
+      x: (localPos.x - viewport.x) / viewport.scale,
+      y: (localPos.y - viewport.y) / viewport.scale
+    };
+    const cartesian = isometricToCartesian(worldPos.x, worldPos.y);
     const x = Math.floor(cartesian.x);
     const y = Math.floor(cartesian.y);
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
-      onTileHover(cartesian);
+      onTileHover({ x, y });
     } else {
       onTileHover(null);
     }

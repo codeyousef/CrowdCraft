@@ -6,7 +6,8 @@ export const cartesianToIsometric = (x: number, y: number): IsometricPoint => ({
 });
 
 export const isometricToCartesian = (isoX: number, isoY: number): Point => {
-  const x = (isoX / (TILE_CONFIG.width / 2) + isoY / (TILE_CONFIG.height / 2)) / 2;
-  const y = (isoY / (TILE_CONFIG.height / 2) - isoX / (TILE_CONFIG.width / 2)) / 2;
+  // Convert isometric coordinates back to cartesian
+  const x = (2 * isoY + isoX) / (2 * TILE_CONFIG.width);
+  const y = (2 * isoY - isoX) / (2 * TILE_CONFIG.width);
   return { x: Math.floor(x), y: Math.floor(y) };
 };
