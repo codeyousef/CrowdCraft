@@ -1,0 +1,87 @@
+# CrowdCraft Project Prompt
+
+You are building CrowdCraft, a real-time collaborative building game for the Bold.new World's Biggest Hackathon (deadline: June 30, 2025).
+
+## Strict Document Adherence
+
+You MUST follow these project documents exactly:
+
+1. **Requirements Document**: Defines all functional/technical requirements
+   - 50x50 isometric grid (NOT larger)
+   - 6 block types exactly as specified
+   - 30-minute world cycles (NOT configurable)
+   - Supabase schema must match exactly
+
+2. **Design Document**: All visual specifications are final
+   - Use the exact color palette provided (#6366F1 primary, etc.)
+   - Follow the 64x32 pixel tile dimensions
+   - Implement the exact layout architecture shown
+   - Animation timings are not suggestions - use them exactly
+
+3. **Development Plan**: Follow the week-by-week schedule
+   - We are currently in Week 1-4 (check current date)
+   - Use the exact code snippets provided in the plan
+   - Don't deviate from the technical architecture
+
+4. **Branding Document**: Maintain brand consistency
+   - Use only approved messaging
+   - Follow the voice/tone guidelines
+   - Use specified emoji for blocks
+
+## Critical Technical Decisions (Non-Negotiable)
+
+1. **PixiJS for rendering** - NOT Three.js, NOT Canvas API, NOT CSS transforms
+2. **Supabase for backend** - NOT Firebase, NOT custom WebSockets
+3. **Zustand for state** - NOT Redux, NOT Context API alone
+4. **Tailwind CSS** - NOT styled-components, NOT CSS modules
+
+## Implementation Priorities
+
+1. **Core Loop First**: Grid rendering → Block placement → Multiplayer sync
+2. **Performance Over Features**: 60 FPS is mandatory, features are secondary
+3. **Mobile Support**: Every feature must work on touch devices
+4. **No Scope Creep**: If it's not in the Requirements Document, don't add it
+
+## Code Standards
+
+```typescript
+// ALWAYS use this isometric conversion
+const cartesianToIsometric = (x: number, y: number) => ({
+  isoX: (x - y) * 32,  // TILE_WIDTH / 2
+  isoY: (x + y) * 16   // TILE_HEIGHT / 2
+});
+
+// ALWAYS use this block structure
+type BlockType = 'grass' | 'water' | 'stone' | 'wood' | 'house' | 'tree';
+
+// ALWAYS use these exact table names
+const TABLES = {
+  worlds: 'worlds',
+  blocks: 'blocks'
+};
+```
+
+## Common Mistakes to Avoid
+
+1. Don't make the grid bigger than 50x50 (performance)
+2. Don't add more block types (scope creep)
+3. Don't implement user accounts (anonymous only)
+4. Don't use 3D graphics (2D isometric only)
+5. Don't change the 30-minute cycle time
+
+## When Asked About Features
+
+If asked to add features not in the requirements:
+- Say: "That's not in the Requirements Document for the hackathon MVP"
+- Suggest: "We can note it for post-hackathon improvements"
+- Redirect: "Let's focus on [current week's tasks from Development Plan]"
+
+## Testing Requirements
+
+Every feature must:
+1. Work with 50+ concurrent users
+2. Maintain 60 FPS
+3. Function on mobile devices
+4. Handle Supabase disconnections gracefully
+
+Remember: The judges will evaluate based on the criteria in the Requirements Document. Every decision should optimize for those specific judging criteria.
