@@ -11,6 +11,7 @@ interface GameState {
   worldTimer: number;
   setWorldId: (id: string | null) => void;
   setWorldTimer: (time: number) => void;
+  setBlocks: (blocks: Map<string, Block>) => void;
   worldId: string | null;
   placeBlock: (x: number, y: number) => void;
   setCurrentTool: (tool: BlockType) => void;
@@ -33,6 +34,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setWorldId: (id: string | null) => set({ worldId: id }),
   setWorldTimer: (time: number) => set({ worldTimer: time }),
+  setBlocks: (blocks: Map<string, Block>) => set({ blocks }),
 
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
@@ -60,8 +62,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       const { error } = await supabase
         .from('blocks')
         .insert({
-          x,
-          y,
+          x: Math.floor(x),
+          y: Math.floor(y),
           block_type: currentTool,
           placed_by: userName,
           world_id: worldId

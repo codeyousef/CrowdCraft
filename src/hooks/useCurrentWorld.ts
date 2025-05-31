@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
-import { nanoid } from 'nanoid';
 
 export const useCurrentWorld = () => {
   const setWorldId = useGameStore(state => state.setWorldId);
@@ -13,7 +12,7 @@ export const useCurrentWorld = () => {
         // Get the most recent active world
         const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
-          .select('*')
+          .select()
           .gt('reset_at', new Date().toISOString())
           .order('created_at', { ascending: false })
           .limit(1);
@@ -53,17 +52,22 @@ export const useCurrentWorld = () => {
           // Load initial blocks
           const { data: blocks, error: blocksError } = await supabase
             .from('blocks')
-            .select('*')
+            .select()
             .eq('world_id', world.id);
             
           if (blocksError) throw blocksError;
           
-          blocks?.forEach(block => {
-            useGameStore.getState().updateBlock(block.x, block.y, {
-              type: block.block_type,
-              placedBy: block.placed_by
+          if (blocks) {
+            const blockMap = new Map();
+            blocks.forEach(block => {
+              blockMap.set(`${block.x},${block.y}`, {
+                type: block.block_type,
+                placedBy: block.placed_by,
+                placedAt: Date.now()
+              });
             });
-          });
+            useGameStore.getState().setBlocks(blockMap);
+          }
         }
       } catch (error) {
         console.error('Failed to load current world:', error);
