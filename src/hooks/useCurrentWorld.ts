@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
+import { nanoid } from 'nanoid';
 
 export const useCurrentWorld = () => {
   const setWorldId = useGameStore(state => state.setWorldId);
@@ -9,10 +10,11 @@ export const useCurrentWorld = () => {
   useEffect(() => {
     const loadCurrentWorld = async () => {
       try {
-        // First try to get the most recent world
+        // Get the most recent active world
         const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
           .select('*')
+          .gt('reset_at', new Date().toISOString())
           .order('created_at', { ascending: false })
           .limit(1);
           

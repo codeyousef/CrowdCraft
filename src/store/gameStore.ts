@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Block, BlockType, Point } from '../types/game';
 import { supabase } from '../lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { nanoid } from 'nanoid';
 
 interface GameState {
   blocks: Map<string, Block>;
@@ -9,14 +9,12 @@ interface GameState {
   userName: string;
   activeUsers: Set<string>;
   worldTimer: number;
-  user: User | null;
   setWorldId: (id: string | null) => void;
   setWorldTimer: (time: number) => void;
   worldId: string | null;
   placeBlock: (x: number, y: number) => void;
   setCurrentTool: (tool: BlockType) => void;
   updateBlock: (x: number, y: number, block: Omit<Block, 'placedAt'>) => void;
-  setUser: (user: User | null) => void;
 }
 
 const generateAnimalName = () => {
@@ -32,16 +30,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   activeUsers: new Set(),
   worldTimer: 1800, // 30 minutes
   worldId: null,
-  user: null,
-  setUser: (user: User | null) => set({ user: user }),
 
   setWorldId: (id: string | null) => set({ worldId: id }),
   setWorldTimer: (time: number) => set({ worldTimer: time }),
 
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
-    const { currentTool, userName, blocks, worldId, user } = get();
-    if (!worldId || !user) return;
+    const { currentTool, userName, blocks, worldId } = get();
+    if (!worldId) return;
     
     // Check rate limit locally
     const recentPlacements = Array.from(blocks.values())
@@ -55,7 +51,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       blocks: new Map(blocks).set(key, {
         type: currentTool,
-        placedBy: user.id,
+        placedBy: userName,
         placedAt: Date.now()
       })
     });
@@ -67,7 +63,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           x,
           y,
           block_type: currentTool,
-          placed_by: user.id,
+          placed_by: userName,
           world_id: worldId
         });
         
@@ -77,12 +73,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const newBlocks = new Map(get().blocks);
       newBlocks.delete(key);
       set({ blocks: newBlocks });
-      
-      if (error.message.includes('rate limit')) {
-        console.warn('Server rate limit exceeded');
-      } else {
-        console.error('Failed to place block:', error);
-      }
+      console.error('Failed to place block:', error);
     }
   },
 
