@@ -45,41 +45,43 @@ export const useCurrentWorld = () => {
           if (createError) throw createError;
           world = newWorld;
         }
+
+        // Add type checking and null check before accessing world properties
+        if (world && typeof world === 'object' && 'id' in world && 'reset_at' in world) {
+          setWorldId(world.id);
+          const resetAt = new Date(world.reset_at);
+          const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - Date.now()) / 1000));
+          setWorldTimer(remainingTime);
+          
+          try {
+            const { data: blocks, error: blocksError } = await supabase
+              .from('blocks')
+              .select()
+              .eq('world_id', world.id);
+            
+            if (blocksError) throw blocksError;
+            
+            if (blocks) {
+              const blockMap = new Map<string, Block>();
+              blocks.forEach(block => {
+                blockMap.set(`${block.x},${block.y}`, {
+                  type: block.block_type,
+                  placedBy: block.placed_by,
+                  placedAt: new Date(block.placed_at).getTime()
+                });
+              });
+              setBlocks(blockMap);
+            }
+          } catch (error: any) {
+            console.error('Failed to load blocks:', error.message);
+          }
+        } else {
+          console.error('Invalid world data structure:', world);
+        }
       } catch (error: any) {
         console.error('Failed to load current world:', error.message);
         if (error.message?.includes('FetchError')) {
           console.error('Connection to Supabase failed. Please check your environment variables and network connection.');
-        }
-        return;
-      }
-        
-      if (world) {
-        setWorldId(world.id);
-        const resetAt = new Date(world.reset_at);
-        const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - Date.now()) / 1000));
-        setWorldTimer(remainingTime);
-        
-        try {
-          const { data: blocks, error: blocksError } = await supabase
-            .from('blocks')
-            .select()
-            .eq('world_id', world.id);
-          
-          if (blocksError) throw blocksError;
-          
-          if (blocks) {
-            const blockMap = new Map<string, Block>();
-            blocks.forEach(block => {
-              blockMap.set(`${block.x},${block.y}`, {
-                type: block.block_type,
-                placedBy: block.placed_by,
-                placedAt: new Date(block.placed_at).getTime()
-              });
-            });
-            setBlocks(blockMap);
-          }
-        } catch (error: any) {
-          console.error('Failed to load blocks:', error.message);
         }
       }
     };
