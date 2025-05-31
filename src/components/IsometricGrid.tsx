@@ -306,22 +306,16 @@ export const IsometricGrid = () => {
       height={window.innerHeight}
       eventMode="static"
       options={{ 
-      }
-      }
-      options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
         eventFeatures: { click: true, move: true, wheel: true }
-        if (isLocked) exitLock();
       }}
     >
       <IsometricGridContent
         textures={textures}
         viewport={viewport}
-        eventMode="static"
-        interactive={true}
         onTileHover={setHoveredTile}
         onTileClick={handleTileClick}
         hoveredTile={hoveredTile}
