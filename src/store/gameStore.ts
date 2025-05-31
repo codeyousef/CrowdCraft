@@ -39,7 +39,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
-    if (!worldId) return;
+    if (!worldId) {
+      console.warn('No active world');
+      return;
+    }
     
     // Check rate limit locally
     const recentPlacements = Array.from(blocks.values())
@@ -49,12 +52,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       return;
     }
     
+    const now = new Date().toISOString();
+    
     // Optimistic update
     set({
       blocks: new Map(blocks).set(key, {
         type: currentTool,
         placedBy: userName,
-        placedAt: Date.now()
+        placedAt: new Date(now).getTime()
       })
     });
     
@@ -66,7 +71,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           y: Math.floor(y),
           block_type: currentTool,
           placed_by: userName,
-          world_id: worldId
+          world_id: worldId,
+          placed_at: now
         });
         
       if (error) throw error;
@@ -86,7 +92,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set(state => ({
       blocks: new Map(state.blocks).set(key, {
         ...block,
-        placedAt: Date.now()
+        placedAt: new Date().getTime()
       })
     }));
   }

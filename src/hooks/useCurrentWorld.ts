@@ -1,19 +1,19 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
+import { Block } from '../types/game';
 
 export const useCurrentWorld = () => {
   const setWorldId = useGameStore(state => state.setWorldId);
   const setWorldTimer = useGameStore(state => state.setWorldTimer);
+  const setBlocks = useGameStore(state => state.setBlocks);
   
   useEffect(() => {
     const loadCurrentWorld = async () => {
       try {
-        // Get the most recent active world
         const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
           .select()
-          .gt('reset_at', new Date().toISOString())
           .order('created_at', { ascending: false })
           .limit(1);
           
@@ -21,7 +21,6 @@ export const useCurrentWorld = () => {
         
         let world = worlds?.[0];
         
-        // If no world exists, create a new one
         if (!world) {
           const resetAt = new Date();
           resetAt.setMinutes(resetAt.getMinutes() + 30); // 30 minutes from now
@@ -44,12 +43,10 @@ export const useCurrentWorld = () => {
         
         if (world) {
           setWorldId(world.id);
-          // Calculate remaining time
           const resetAt = new Date(world.reset_at);
           const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - Date.now()) / 1000));
           setWorldTimer(remainingTime);
           
-          // Load initial blocks
           const { data: blocks, error: blocksError } = await supabase
             .from('blocks')
             .select()
@@ -58,15 +55,15 @@ export const useCurrentWorld = () => {
           if (blocksError) throw blocksError;
           
           if (blocks) {
-            const blockMap = new Map();
+            const blockMap = new Map<string, Block>();
             blocks.forEach(block => {
               blockMap.set(`${block.x},${block.y}`, {
                 type: block.block_type,
                 placedBy: block.placed_by,
-                placedAt: Date.now()
+                placedAt: new Date(block.placed_at).getTime()
               });
             });
-            useGameStore.getState().setBlocks(blockMap);
+            setBlocks(blockMap);
           }
         }
       } catch (error) {
@@ -75,5 +72,5 @@ export const useCurrentWorld = () => {
     };
     
     loadCurrentWorld();
-  }, [setWorldId, setWorldTimer]);
+  }, [setWorldId, setWorldTimer, setBlocks]);
 };
