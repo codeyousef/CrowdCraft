@@ -8,6 +8,8 @@ interface GameState {
   userName: string;
   activeUsers: Set<string>;
   worldTimer: number;
+  setWorldId: (id: string | null) => void;
+  setWorldTimer: (time: number) => void;
   worldId: string | null;
   placeBlock: (x: number, y: number) => void;
   setCurrentTool: (tool: BlockType) => void;
@@ -27,6 +29,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   activeUsers: new Set(),
   worldTimer: 1800, // 30 minutes
   worldId: null,
+
+  setWorldId: (id: string | null) => set({ worldId: id }),
+  setWorldTimer: (time: number) => set({ worldTimer: time }),
 
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
