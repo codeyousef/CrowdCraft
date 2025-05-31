@@ -13,7 +13,7 @@ const MAX_MESSAGES = 100;
 
 export const DebugOverlay: React.FC<DebugOverlayProps> = ({ messages }) => {
   return (
-    <div className="fixed top-20 right-4 bg-surface/90 backdrop-blur rounded-lg p-4 w-96 max-h-[500px] overflow-y-auto shadow-lg border border-border z-50" style={{ display: 'block' }}>
+    <div className="fixed top-20 right-4 bg-surface/90 backdrop-blur rounded-lg p-4 w-96 max-h-[500px] overflow-y-auto shadow-lg border border-border z-50\" style={{ display: 'block' }}>
       <div className="flex justify-between items-center mb-2 pb-2 border-b border-border">
         <h3 className="font-semibold">Debug Log</h3>
         <div className="flex gap-2 text-xs text-text-secondary">
