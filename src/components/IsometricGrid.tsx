@@ -7,6 +7,7 @@ import { loadTextures } from '../lib/textures';
 import { useGameStore } from '../store/gameStore';
 import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
 import { useViewport } from '../hooks/useViewport';
+import { useTouchControls } from '../hooks/useTouchControls';
 import { TilePool } from '../lib/TilePool';
 import { GRID_SIZE, TILE_CONFIG } from '../types/game';
 
@@ -110,7 +111,10 @@ export const IsometricGrid = () => {
   const { placeBlock } = useGameStore();
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
   const [textures, setTextures] = useState<Record<string, PIXI.Texture>>();
-  const viewport = useViewport();
+  const desktopViewport = useViewport();
+  const touchViewport = useTouchControls();
+  const isTouchDevice = 'ontouchstart' in window;
+  const viewport = isTouchDevice ? touchViewport : desktopViewport;
   const worldId = useGameStore(state => state.worldId);
 
   // Subscribe to real-time updates
