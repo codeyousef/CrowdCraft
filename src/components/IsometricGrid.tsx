@@ -31,6 +31,13 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     
+    console.log('🖱️ Pointer move:', {
+      type: e.type,
+      position: e.global,
+      buttons: e.buttons,
+      pressure: e.pressure
+    });
+    
     // Get position relative to the container (already in world space)
     const localPos = e.getLocalPosition(containerRef.current);
     
@@ -38,6 +45,12 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     const cartesian = isometricToCartesian(localPos.x, localPos.y);
     const x = Math.floor(cartesian.x);
     const y = Math.floor(cartesian.y);
+    
+    console.log('📍 Hover coordinates:', {
+      local: localPos,
+      cartesian: { x, y },
+      inBounds: x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE
+    });
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
       onTileHover({ x, y });
@@ -49,10 +62,12 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const handleClick = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     
-    console.log('🖱️ Click event:', {
+    console.log('🎯 Click event details:', {
       type: e.type,
       button: e.button,
-      pressure: e.pressure
+      pressure: e.pressure,
+      target: e.target.constructor.name,
+      currentTarget: e.currentTarget.constructor.name
     });
     
     // Get global position and convert to container space
@@ -67,11 +82,16 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     const x = Math.floor(cartesian.x);
     const y = Math.floor(cartesian.y);
 
-    console.log('📍 Click coordinates:', {
+    console.log('🎮 Click coordinates:', {
       global: globalPos,
       local: localPos,
       viewport: viewport,
-      tile: { x, y }
+      tile: { x, y },
+      container: {
+        position: containerRef.current?.position,
+        scale: containerRef.current?.scale,
+        worldTransform: containerRef.current?.worldTransform
+      }
     });
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
@@ -191,7 +211,13 @@ export const IsometricGrid = () => {
   }, []);
 
   const handleTileClick = useCallback((x: number, y: number) => {
-    console.log(`Placing block at (${x}, ${y})`);
+    console.log('🎲 Attempting block placement:', {
+      coordinates: { x, y },
+      currentTool: useGameStore.getState().currentTool,
+      worldId: useGameStore.getState().worldId,
+      existingBlocks: useGameStore.getState().blocks.size
+    });
+    
     placeBlock(x, y);
   }, [placeBlock]);
 
