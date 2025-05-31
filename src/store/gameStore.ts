@@ -33,6 +33,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { currentTool, userName, blocks, worldId } = get();
     if (!worldId) return;
     
+    // Check rate limit locally
+    const recentPlacements = Array.from(blocks.values())
+      .filter(block => block.placedBy === userName && Date.now() - block.placedAt < 1000);
+    if (recentPlacements.length >= 10) {
+      console.warn('Rate limit exceeded');
+      return;
+    }
+    
     // Optimistic update
     set({
       blocks: new Map(blocks).set(key, {
@@ -59,7 +67,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       const newBlocks = new Map(get().blocks);
       newBlocks.delete(key);
       set({ blocks: newBlocks });
-      console.error('Failed to place block:', error);
+      
+      if (error.message.includes('rate limit')) {
+        console.warn('Server rate limit exceeded');
+      } else {
+        console.error('Failed to place block:', error);
+      }
     }
   },
 
