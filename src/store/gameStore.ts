@@ -43,15 +43,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
-    console.log(`Attempting to place block: type=${currentTool}, pos=(${x},${y}), user=${userName}`);
+    console.log(`🎯 Attempting to place ${currentTool} at (${x}, ${y}) by ${userName}`);
     if (!worldId) {
-      console.warn('No active world or Supabase connection');
+      console.warn('❌ Cannot place block: No active world');
       return;
     }
     
     // Validate coordinates
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
-      console.warn(`Invalid coordinates: (${x}, ${y}). Must be within 0-${GRID_SIZE-1}`);
+      console.warn(`❌ Invalid coordinates (${x}, ${y}): Must be within 0-${GRID_SIZE-1}`);
       return;
     }
     
@@ -59,12 +59,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const recentPlacements = Array.from(blocks.values())
       .filter(block => block.placedBy === userName && Date.now() - block.placedAt < 1000);
     if (recentPlacements.length >= 10) {
-      console.warn('Rate limit exceeded');
+      console.warn('⚠️ Rate limit exceeded: Wait a moment before placing more blocks');
       return;
     }
     
     const now = new Date().toISOString();
     
+    console.log(`🔄 Optimistically updating block at (${x}, ${y})`);
     // Optimistic update
     set({
       blocks: new Map(blocks).set(key, {
@@ -90,15 +91,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
         
       if (error) throw error;
+      console.log(`✅ Successfully placed ${currentTool} at (${x}, ${y})`);
     } catch (error: any) {
       // Rollback on error
       const newBlocks = new Map(get().blocks);
-      console.error(`Block placement failed at (${x}, ${y}):`, error.message);
       newBlocks.delete(key);
       set({ blocks: newBlocks });
-      console.error('Failed to place block:', error.message);
+      console.error(`❌ Failed to place block at (${x}, ${y}): ${error.message}`);
       if (error.message?.includes('FetchError')) {
-        console.error('Connection to Supabase failed. Please check your network connection.');
+        console.error('🌐 Connection to Supabase failed: Check your network connection');
       }
     }
   },
