@@ -33,14 +33,25 @@ export const useGameStore = create<GameState>((set, get) => ({
   worldId: null,
 
   setWorldId: (id: string | null) => set({ worldId: id }),
-  setWorldTimer: (time: number) => set({ worldTimer: time }),
+  setWorldTimer: (time: number) => {
+    if (typeof time === 'number' && !isNaN(time)) {
+      set({ worldTimer: Math.max(0, time) });
+    }
+  },
   setBlocks: (blocks: Map<string, Block>) => set({ blocks }),
 
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
+    console.log(`Placing block: type=${currentTool}, pos=(${x},${y}), user=${userName}`);
     if (!worldId) {
       console.warn('No active world or Supabase connection');
+      return;
+    }
+    
+    // Validate coordinates
+    if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) {
+      console.warn(`Invalid coordinates: (${x}, ${y}). Must be within 0-${GRID_SIZE-1}`);
       return;
     }
     
@@ -82,6 +93,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch (error: any) {
       // Rollback on error
       const newBlocks = new Map(get().blocks);
+      console.error(`Block placement failed at (${x}, ${y}):`, error.message);
       newBlocks.delete(key);
       set({ blocks: newBlocks });
       console.error('Failed to place block:', error.message);

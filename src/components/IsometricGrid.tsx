@@ -9,6 +9,7 @@ import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
 import { useViewport } from '../hooks/useViewport';
 import { useTouchControls } from '../hooks/useTouchControls';
 import { GRID_SIZE, TILE_CONFIG } from '../types/game';
+import { DebugOverlay } from './DebugOverlay';
 
 interface IsometricGridContentProps {
   textures: Record<string, PIXI.Texture>;
@@ -133,6 +134,7 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
 export const IsometricGrid = () => {
   const { placeBlock } = useGameStore();
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
+  const [debugMessages, setDebugMessages] = useState<Array<{ text: string; timestamp: number }>>([]);
   const [textures, setTextures] = useState<Record<string, PIXI.Texture>>();
   const desktopViewport = useViewport();
   const touchViewport = useTouchControls();
@@ -149,30 +151,47 @@ export const IsometricGrid = () => {
 
   const handleClick = useCallback(() => {
     if (!hoveredTile) return;
+    const message = `Attempting to place block at (${hoveredTile.x}, ${hoveredTile.y})`;
+    setDebugMessages(prev => [...prev.slice(-9), { text: message, timestamp: Date.now() }]);
     placeBlock(Math.floor(hoveredTile.x), Math.floor(hoveredTile.y));
   }, [hoveredTile, placeBlock]);
+
+  const addDebugMessage = useCallback((text: string) => {
+    setDebugMessages(prev => [...prev.slice(-9), { text, timestamp: Date.now() }]);
+  }, []);
+
+  useEffect(() => {
+    if (hoveredTile) {
+      const { x, y } = hoveredTile;
+      const iso = cartesianToIsometric(x, y);
+      addDebugMessage(`Hover: Cart(${x}, ${y}) -> Iso(${Math.round(iso.isoX)}, ${Math.round(iso.isoY)})`);
+    }
+  }, [hoveredTile, addDebugMessage]);
 
   if (!textures) {
     return <LoadingSpinner />;
   }
 
   return (
-    <Stage
-      width={window.innerWidth}
-      height={window.innerHeight}
-      options={{ 
-        backgroundColor: 0x0F172A,
-        antialias: true,
-        resolution: window.devicePixelRatio || 1
-      }}
-    >
-      <IsometricGridContent
-        textures={textures}
-        viewport={viewport}
-        onTileHover={setHoveredTile}
-        onTileClick={handleClick}
-        hoveredTile={hoveredTile}
-      />
-    </Stage>
+    <>
+      <Stage
+        width={window.innerWidth}
+        height={window.innerHeight}
+        options={{ 
+          backgroundColor: 0x0F172A,
+          antialias: true,
+          resolution: window.devicePixelRatio || 1
+        }}
+      >
+        <IsometricGridContent
+          textures={textures}
+          viewport={viewport}
+          onTileHover={setHoveredTile}
+          onTileClick={handleClick}
+          hoveredTile={hoveredTile}
+        />
+      </Stage>
+      <DebugOverlay messages={debugMessages} />
+    </>
   );
 };
