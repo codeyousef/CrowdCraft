@@ -49,20 +49,26 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const handleClick = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     
-    // Get position relative to the container
-    const localPos = e.getLocalPosition(containerRef.current);
+    // Get the global position and adjust for viewport
+    const globalPos = e.global;
+    const worldX = (globalPos.x - viewport.x) / viewport.scale;
+    const worldY = (globalPos.y - viewport.y) / viewport.scale;
     
     // Convert from isometric to cartesian
-    const cartesian = isometricToCartesian(localPos.x, localPos.y);
+    const cartesian = isometricToCartesian(worldX, worldY);
     const x = Math.floor(cartesian.x);
     const y = Math.floor(cartesian.y);
     
-    console.log('Click at:', { localPos, cartesian, tile: { x, y } });
+    console.log('Click detected:', {
+      global: globalPos,
+      world: { x: worldX, y: worldY },
+      tile: { x, y }
+    });
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
       onTileClick(x, y);
     }
-  }, [onTileClick]);
+  }, [onTileClick, viewport]);
 
   const renderBlock = useCallback((key: string, block: Block) => {
     const [x, y] = key.split(',').map(Number);
@@ -86,7 +92,7 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       x={viewport.x}
       y={viewport.y}
       scale={viewport.scale}
-      eventMode="dynamic"
+      eventMode="static"
       onpointerdown={handleClick}
       onpointermove={handleMove}
       sortableChildren={true}
