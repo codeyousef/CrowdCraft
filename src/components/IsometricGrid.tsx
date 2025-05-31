@@ -17,6 +17,8 @@ interface IsometricGridContentProps {
   onTileClick: () => void;
   hoveredTile: { x: number; y: number } | null;
 }
+
+const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, hoveredTile }: IsometricGridContentProps) => {
   const { blocks } = useGameStore();
   const app = useApp();
 
@@ -51,6 +53,7 @@ interface IsometricGridContentProps {
       </Container>
     );
   }, [textures]);
+
   return (
     <Container 
       x={viewport.x}
