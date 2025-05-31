@@ -39,7 +39,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
-    if (!worldId || !supabase) {
+    if (!worldId) {
       console.warn('No active world or Supabase connection');
       return;
     }
@@ -66,13 +66,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     try {
       const { error } = await supabase
         .from('blocks')
-        .insert({
+        .upsert({
           x: Math.floor(x),
           y: Math.floor(y),
           block_type: currentTool,
           placed_by: userName,
           world_id: worldId,
           placed_at: now
+        }, {
+          onConflict: '(x, y, world_id)',
+          ignoreDuplicates: false
         });
         
       if (error) throw error;

@@ -45,13 +45,38 @@ export const useCurrentWorld = () => {
           if (createError) throw createError;
           world = newWorld;
         }
-
+        
         // Add type checking and null check before accessing world properties
         if (world && typeof world === 'object' && 'id' in world && 'reset_at' in world) {
           setWorldId(world.id);
           const resetAt = new Date(world.reset_at);
-          const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - Date.now()) / 1000));
+          const now = Date.now();
+          const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - now) / 1000));
           setWorldTimer(remainingTime);
+          
+          // If timer is expired, create a new world
+          if (remainingTime <= 0) {
+            const newResetAt = new Date();
+            newResetAt.setMinutes(newResetAt.getMinutes() + 30);
+            
+            const { data: newWorld, error: createError } = await supabase
+              .from('worlds')
+              .insert([{ 
+                reset_at: newResetAt.toISOString(),
+                total_blocks: 0,
+                unique_builders: 0
+              }])
+              .select()
+              .single();
+              
+            if (createError) throw createError;
+            if (newWorld) {
+              setWorldId(newWorld.id);
+              setWorldTimer(1800); // 30 minutes in seconds
+              setBlocks(new Map()); // Clear blocks for new world
+              return;
+            }
+          }
           
           try {
             const { data: blocks, error: blocksError } = await supabase

@@ -4,6 +4,9 @@ import { useGameStore } from '../store/gameStore';
 export const WorldTimer = () => {
   const { worldTimer, setWorldTimer } = useGameStore();
 
+  // Ensure worldTimer is a valid number
+  const validTimer = typeof worldTimer === 'number' && !isNaN(worldTimer) ? worldTimer : 1800;
+
   useEffect(() => {
     const timer = setInterval(() => {
       setWorldTimer(prev => Math.max(0, prev - 1));
@@ -12,9 +15,9 @@ export const WorldTimer = () => {
     return () => clearInterval(timer);
   }, [setWorldTimer]);
 
-  const minutes = Math.floor(worldTimer / 60);
-  const seconds = worldTimer % 60;
-  const progress = (worldTimer / 1800) * 100; // 30 minutes = 1800 seconds
+  const minutes = Math.floor(validTimer / 60);
+  const seconds = validTimer % 60;
+  const progress = (validTimer / 1800) * 100; // 30 minutes = 1800 seconds
 
   return (
     <div className="fixed top-0 left-0 right-0 bg-surface/80 backdrop-blur border-b border-border">
