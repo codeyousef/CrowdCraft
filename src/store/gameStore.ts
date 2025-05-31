@@ -44,6 +44,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     const key = `${x},${y}`;
     const { currentTool, userName, blocks, worldId } = get();
     
+    console.log('🎮 Block placement attempt:', {
+      coordinates: { x, y },
+      tool: currentTool,
+      user: userName,
+      worldId
+    });
+    
     if (!worldId) {
       console.warn('❌ Cannot place block: No active world');
       return;
@@ -58,7 +65,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Check if block already exists
     const existingBlock = blocks.get(key);
     if (existingBlock) {
-      console.log(`ℹ️ Block already exists at (${x}, ${y}): ${existingBlock.type} by ${existingBlock.placedBy}`);
+      console.log('ℹ️ Block already exists:', {
+        coordinates: { x, y },
+        type: existingBlock.type,
+        placedBy: existingBlock.placedBy,
+        placedAt: new Date(existingBlock.placedAt).toISOString()
+      });
       return;
     }
     
@@ -69,8 +81,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       console.warn('⚠️ Slow down! You can place up to 10 blocks per second');
       return;
     }
-    
-    console.log(`🎯 ${userName} placing ${currentTool} at (${x}, ${y})`);
     const now = new Date().toISOString();
     
     // Optimistic update

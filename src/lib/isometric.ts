@@ -24,10 +24,11 @@ export const isometricToCartesian = (isoX: number, isoY: number): Point => {
   const x = (isoX / (TILE_CONFIG.width / 2) + isoY / (TILE_CONFIG.height / 2)) / 2;
   const y = (isoY / (TILE_CONFIG.height / 2) - isoX / (TILE_CONFIG.width / 2)) / 2;
   
-  console.log('Coordinate conversion:', {
+  console.log('🔄 Coordinate conversion:', {
     iso: { x: isoX, y: isoY },
     cartesian: { x, y },
-    rounded: { x: Math.floor(x), y: Math.floor(y) }
+    rounded: { x: Math.floor(x), y: Math.floor(y) },
+    tileSize: { width: TILE_CONFIG.width, height: TILE_CONFIG.height }
   });
   
   return { x, y };  // Don't floor here - let the caller decide

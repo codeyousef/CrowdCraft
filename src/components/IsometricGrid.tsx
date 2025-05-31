@@ -49,6 +49,12 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const handleClick = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
     
+    console.log('🖱️ Click event:', {
+      type: e.type,
+      button: e.button,
+      pressure: e.pressure
+    });
+    
     // Get global position and convert to container space
     const globalPos = e.global;
     const localPos = new PIXI.Point(
@@ -60,8 +66,8 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     const cartesian = isometricToCartesian(localPos.x, localPos.y);
     const x = Math.floor(cartesian.x);
     const y = Math.floor(cartesian.y);
-    
-    console.log('Click detected:', {
+
+    console.log('📍 Click coordinates:', {
       global: globalPos,
       local: localPos,
       viewport: viewport,
@@ -69,10 +75,18 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     });
     
     if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
-      console.log('Valid click - placing block at:', { x, y });
+      console.log('✨ Valid click - attempting to place block:', { 
+        x, y, 
+        inBounds: true,
+        gridSize: GRID_SIZE 
+      });
       onTileClick(x, y);
     } else {
-      console.log('Click outside grid bounds:', { x, y });
+      console.warn('⚠️ Click outside grid bounds:', { 
+        x, y, 
+        gridSize: GRID_SIZE,
+        reason: `Coordinates must be between 0 and ${GRID_SIZE-1}`
+      });
     }
   }, [onTileClick, viewport]);
 
