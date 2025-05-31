@@ -9,14 +9,37 @@ export const useCurrentWorld = () => {
   useEffect(() => {
     const loadCurrentWorld = async () => {
       try {
-        const { data: world, error } = await supabase
+        // First try to get the most recent world
+        const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
           
-        if (error) throw error;
+        if (fetchError) throw fetchError;
+        
+        let world = worlds?.[0];
+        
+        // If no world exists, create a new one
+        if (!world) {
+          const resetAt = new Date();
+          resetAt.setMinutes(resetAt.getMinutes() + 30); // 30 minutes from now
+          
+          const { data: newWorld, error: createError } = await supabase
+            .from('worlds')
+            .insert([
+              { 
+                reset_at: resetAt.toISOString(),
+                total_blocks: 0,
+                unique_builders: 0
+              }
+            ])
+            .select()
+            .single();
+            
+          if (createError) throw createError;
+          world = newWorld;
+        }
         
         if (world) {
           setWorldId(world.id);
