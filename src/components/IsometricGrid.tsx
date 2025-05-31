@@ -306,6 +306,8 @@ export const IsometricGrid = () => {
       height={window.innerHeight}
       eventMode="static"
       options={{ 
+      }
+      }
       options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
