@@ -88,21 +88,40 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
     if (!containerRef.current) return;
     if (!interactionEnabled.current) return;
     
+    console.log('🔍 Click event details:', {
+      type: e.type,
+      eventPhase: e.eventPhase,
+      propagationStopped: e.propagationStopped,
+      propagationImmediatelyStopped: e.propagationImmediatelyStopped,
+      defaultPrevented: e.defaultPrevented,
+      cancelBubble: e.cancelBubble,
+      target: {
+        type: e.target?.constructor.name,
+        interactive: e.target?.eventMode,
+        visible: e.target?.visible,
+        parent: e.target?.parent?.constructor.name
+      },
+      currentTarget: {
+        type: e.currentTarget?.constructor.name,
+        interactive: e.currentTarget?.eventMode,
+        visible: e.currentTarget?.visible,
+        parent: e.currentTarget?.parent?.constructor.name
+      },
+      global: e.global,
+      buttons: e.buttons,
+      pressure: e.pressure,
+      pointerType: e.pointerType,
+      isPrimary: e.isPrimary
+    });
+
     // Request pointer lock on first click if not already locked
     if (!isLocked && e.pointerType === 'mouse') {
       requestLock();
       return;
     }
     
-    console.log('🎯 Click event details:', {
-      type: e.type,
-      button: e.button,
-      pressure: e.pressure,
-      pointerType: e.pointerType,
-      locked: isLocked,
-      target: e.target.constructor.name,
-      currentTarget: e.currentTarget.constructor.name
-    });
+    e.stopPropagation();
+    e.preventDefault();
     
     // Get global position and convert to container space
     const globalPos = isLocked ? lastPointerPos.current : e.global;
@@ -293,6 +312,8 @@ export const IsometricGrid = () => {
       <IsometricGridContent
         textures={textures}
         viewport={viewport}
+        eventMode="static"
+        interactive={true}
         onTileHover={setHoveredTile}
         onTileClick={handleTileClick}
         hoveredTile={hoveredTile}

@@ -35,16 +35,34 @@ export const isometricToCartesian = (isoX: number, isoY: number): Point => {
 };
 
 export const screenToTile = (screenX: number, screenY: number, viewport: { x: number; y: number; scale: number }): Point => {
+  console.log('🎯 Screen to tile conversion:', {
+    input: { screenX, screenY },
+    viewport: { ...viewport },
+    devicePixelRatio: window.devicePixelRatio
+  });
+
   // Adjust for viewport position and scale
   const adjustedX = (screenX - viewport.x) / viewport.scale;
   const adjustedY = (screenY - viewport.y) / viewport.scale;
+  
+  console.log('📐 Adjusted coordinates:', {
+    adjusted: { x: adjustedX, y: adjustedY },
+    scale: viewport.scale
+  });
 
   // Convert to cartesian coordinates
   const cartesian = isometricToCartesian(adjustedX, adjustedY);
-
-  // Floor the values and ensure they're within grid bounds
-  return {
+  
+  const result = {
     x: Math.floor(cartesian.x),
     y: Math.floor(cartesian.y)
   };
+  
+  console.log('🎲 Final tile coordinates:', {
+    cartesian,
+    result,
+    valid: result.x >= 0 && result.x < GRID_SIZE && result.y >= 0 && result.y < GRID_SIZE
+  });
+
+  return result;
 };
