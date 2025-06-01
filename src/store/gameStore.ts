@@ -219,16 +219,22 @@ export const useGameStore = create<GameState>((set, get) => ({
           const startTime = new Date().toISOString();
           const endTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
           
+          // Update world with start and end times
           const { error } = await supabase
             .from('worlds')
             .update({ 
               started_at: startTime,
-              reset_at: endTime
+              reset_at: endTime,
+              total_blocks: 0,
+              unique_builders: 0
             })
             .eq('id', worldId);
             
           if (error) throw error;
+          
+          // Set times in store and localStorage
           get().setWorldTimes(startTime, endTime);
+          localStorage.setItem('autoJoin', 'true');
           console.log('⏰ Started world timer:', { startTime, endTime });
         }
       } else {

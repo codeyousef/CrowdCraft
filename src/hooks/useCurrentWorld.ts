@@ -23,7 +23,7 @@ export const useCurrentWorld = () => {
         const storedWorldId = localStorage.getItem('worldId');
         const shouldAutoJoin = localStorage.getItem('autoJoin') === 'true';
         
-        if (!shouldAutoJoin) {
+        if (!shouldAutoJoin && !storedWorldId) {
           console.log('🏠 Showing landing page - auto join disabled');
           setWorldId(null);
           return;
@@ -53,6 +53,7 @@ export const useCurrentWorld = () => {
             if (isActive) {
               world = storedWorld;
               console.log('✅ Using stored world:', { id: world.id, started: world.started_at, ends: world.reset_at });
+              localStorage.setItem('autoJoin', 'true');
             } else {
               console.log('⏰ Stored world has expired, will create new one');
             }
