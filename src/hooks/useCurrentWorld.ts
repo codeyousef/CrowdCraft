@@ -71,6 +71,8 @@ export const useCurrentWorld = () => {
               
             if (createError) throw createError;
             if (newWorld) {
+            }
+          }
           if ('started_at' in world && 'reset_at' in world) {
             setWorldTimes(world.started_at, world.reset_at);
           }
