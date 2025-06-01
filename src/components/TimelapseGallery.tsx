@@ -3,9 +3,8 @@ import { supabase } from '../lib/supabase';
 
 interface Timelapse {
   id: string;
-  world_id: string;
   created_at: string;
-  block_count: number;
+  total_blocks: number;
   unique_builders: number;
   snapshot_url: string;
 }
@@ -18,15 +17,15 @@ export const TimelapseGallery = () => {
     const loadTimelapses = async () => {
       try {
         const { data, error } = await supabase
-          .from('world_snapshots')
+          .from('worlds')
           .select(`
             id,
-            world_id,
             created_at,
-            block_count,
+            total_blocks,
             unique_builders,
             snapshot_url
           `)
+          .not('snapshot_url', 'is', null)
           .order('created_at', { ascending: false })
           .limit(6);
 
@@ -45,7 +44,7 @@ export const TimelapseGallery = () => {
   const handleShare = async (timelapse: Timelapse) => {
     const shareData = {
       title: 'CrowdCraft Creation',
-      text: `${timelapse.unique_builders} builders created this masterpiece with ${timelapse.block_count} blocks!`,
+      text: `${timelapse.unique_builders} builders created this masterpiece with ${timelapse.total_blocks} blocks!`,
       url: window.location.origin
     };
 
@@ -91,7 +90,7 @@ export const TimelapseGallery = () => {
                 <span className="font-semibold">{timelapse.unique_builders}</span> builders
               </div>
               <div className="text-text-secondary">
-                <span className="font-semibold">{timelapse.block_count}</span> blocks
+                <span className="font-semibold">{timelapse.total_blocks}</span> blocks
               </div>
             </div>
             <button
