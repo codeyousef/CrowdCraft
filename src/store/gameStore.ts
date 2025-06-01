@@ -252,6 +252,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   resetForDevelopment: () => {
     localStorage.removeItem('worldId');
     localStorage.removeItem('blocks');
+    localStorage.removeItem('autoJoin');
     localStorage.removeItem('worldStartTime');
     localStorage.removeItem('worldEndTime');
     set({

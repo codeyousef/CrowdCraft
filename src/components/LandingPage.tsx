@@ -24,6 +24,9 @@ export const LandingPage = () => {
 
   const handleJoinWorld = async () => {
     try {
+      // Enable auto-join for future visits
+      localStorage.setItem('autoJoin', 'true');
+      
       // Try to rejoin last world first
       const rejoined = await rejoinLastWorld();
       if (rejoined) return;

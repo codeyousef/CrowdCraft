@@ -10,10 +10,7 @@ export const useCurrentWorld = () => {
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
-    
-    // Clear worldId on initial load to show landing page
-    setWorldId(null);
-    
+        
     const loadCurrentWorld = async () => {
       if (!supabase) {
         console.error('Supabase client not initialized');
@@ -24,6 +21,14 @@ export const useCurrentWorld = () => {
         // First check if we have a world ID stored locally
         let world = null;
         const storedWorldId = localStorage.getItem('worldId');
+        const shouldAutoJoin = localStorage.getItem('autoJoin') === 'true';
+        
+        if (!shouldAutoJoin) {
+          console.log('🏠 Showing landing page - auto join disabled');
+          setWorldId(null);
+          return;
+        }
+        
         console.log('🔍 Checking stored world ID:', storedWorldId);
         
         if (storedWorldId) {
