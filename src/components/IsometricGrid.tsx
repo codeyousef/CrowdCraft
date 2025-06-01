@@ -10,6 +10,8 @@ import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useGameStore } from '../store/gameStore';
 import { useTimelapse } from '../hooks/useTimelapse';
+import { TilePool } from '../lib/TilePool';
+import { useCallback, useRef, useMemo } from 'react';
 
 interface IsometricGridContentProps {
   textures: Record<string, PIXI.Texture>;
@@ -27,6 +29,70 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
   const { blocks } = useGameStore();
   const app = useApp();
   const containerRef = useRef<PIXI.Container>(null);
+  const tilePoolRef = useRef<TilePool>();
+  const frameRequestRef = useRef<number>();
+  
+  // Initialize TilePool
+  useEffect(() => {
+    tilePoolRef.current = new TilePool(textures);
+    return () => tilePoolRef.current?.clear();
+  }, [textures]);
+
+  // Calculate visible area for culling
+  const getVisibleArea = useCallback(() => {
+    if (!containerRef.current || !app.renderer) return null;
+    
+    const bounds = new PIXI.Rectangle(
+      -viewport.x / viewport.scale,
+      -viewport.y / viewport.scale,
+      app.renderer.width / viewport.scale,
+      app.renderer.height / viewport.scale
+    );
+    
+    return bounds;
+  }, [viewport, app.renderer]);
+
+  // Get visible tiles
+  const getVisibleTiles = useCallback(() => {
+    const visibleArea = getVisibleArea();
+    if (!visibleArea) return new Set<string>();
+    
+    const visibleTiles = new Set<string>();
+    const buffer = 2; // Add extra tiles for smooth scrolling
+    
+    blocks.forEach((_, key) => {
+      const [x, y] = key.split(',').map(Number);
+      const { isoX, isoY } = cartesianToIsometric(x - GRID_SIZE/2, y - GRID_SIZE/2);
+      
+      if (
+        isoX >= visibleArea.left - buffer * TILE_CONFIG.width &&
+        isoX <= visibleArea.right + buffer * TILE_CONFIG.width &&
+        isoY >= visibleArea.top - buffer * TILE_CONFIG.height &&
+        isoY <= visibleArea.bottom + buffer * TILE_CONFIG.height
+      ) {
+        visibleTiles.add(key);
+      }
+    });
+    
+    return visibleTiles;
+  }, [blocks, getVisibleArea]);
+
+  // Batch render updates
+  const updateTiles = useCallback(() => {
+    if (frameRequestRef.current) {
+      cancelAnimationFrame(frameRequestRef.current);
+    }
+    
+    frameRequestRef.current = requestAnimationFrame(() => {
+      const visibleTiles = getVisibleTiles();
+      tilePoolRef.current?.updateVisibleTiles(visibleTiles);
+    });
+  }, [getVisibleTiles]);
+
+  // Update visible tiles when viewport changes
+  useEffect(() => {
+    updateTiles();
+  }, [viewport, updateTiles]);
 
   const handleMove = useCallback((e: PIXI.FederatedPointerEvent) => {
     if (!containerRef.current) return;
@@ -101,20 +167,29 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       onpointermove={handleMove}
       sortableChildren={true}
     >
-      {/* Grid lines for reference */}
+      {/* Optimized grid lines */}
       <Graphics
         draw={g => {
           g.clear();
           g.lineStyle(1, 0x334155, 0.3);
+          const visibleArea = getVisibleArea();
+          if (!visibleArea) return;
           
-          // Draw grid lines (centered)
-          for (let i = 0; i <= GRID_SIZE; i++) {
+          // Only draw visible grid lines
+          const startX = Math.max(0, Math.floor(visibleArea.left / TILE_CONFIG.width));
+          const endX = Math.min(GRID_SIZE, Math.ceil(visibleArea.right / TILE_CONFIG.width));
+          const startY = Math.max(0, Math.floor(visibleArea.top / TILE_CONFIG.height));
+          const endY = Math.min(GRID_SIZE, Math.ceil(visibleArea.bottom / TILE_CONFIG.height));
+          
+          for (let i = startX; i <= endX; i++) {
             // Horizontal lines
             const hStart = cartesianToIsometric(i - GRID_SIZE/2, 0 - GRID_SIZE/2);
             const hEnd = cartesianToIsometric(i - GRID_SIZE/2, GRID_SIZE - GRID_SIZE/2);
             g.moveTo(hStart.isoX, hStart.isoY);
             g.lineTo(hEnd.isoX, hEnd.isoY);
-            
+          }
+          
+          for (let i = startY; i <= endY; i++) {
             // Vertical lines
             const vStart = cartesianToIsometric(0 - GRID_SIZE/2, i - GRID_SIZE/2);
             const vEnd = cartesianToIsometric(GRID_SIZE - GRID_SIZE/2, i - GRID_SIZE/2);
@@ -125,7 +200,9 @@ const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, ho
       />
       
       {/* Render all blocks */}
-      {Array.from(blocks.entries()).map(([key, block]) => renderBlock(key, block))}
+      {Array.from(blocks.entries())
+        .filter(([key]) => getVisibleTiles().has(key))
+        .map(([key, block]) => renderBlock(key, block))}
       
       {/* Hover indicator */}
       {hoveredTile && (
