@@ -7,6 +7,9 @@ export class TimelapseGenerator {
   private frames: string[] = [];
   private frameCount = 0;
   
+  // Increase frame capture frequency for smoother timelapses
+  private readonly CAPTURE_INTERVAL = 10000; // Capture every 10 seconds
+  
   constructor() {
     this.ffmpeg = new FFmpeg();
   }
@@ -15,11 +18,21 @@ export class TimelapseGenerator {
     await this.ffmpeg.load();
   }
   
-  async captureFrame(blocks: Map<string, Block>, app: PIXI.Application) {
+  async captureFrame(blocks: Map<string, Block>, app: PIXI.Application, forceCapture = false) {
+    // Only capture if enough time has passed or force capture is true
+    if (!forceCapture && this.frameCount > 0) {
+      const lastFrame = this.frames[this.frames.length - 1];
+      const lastFrameTime = parseInt(lastFrame.split('_')[1] || '0');
+      if (Date.now() - lastFrameTime < this.CAPTURE_INTERVAL) {
+        return;
+      }
+    }
+    
     // Extract canvas content as base64 PNG
     const base64 = app.view.toDataURL('image/png');
-    this.frames.push(base64);
+    this.frames.push(`frame_${Date.now()}_${base64}`);
     this.frameCount++;
+    console.log(`📸 Captured frame ${this.frameCount}`);
   }
   
   async generateVideo(): Promise<Blob> {
@@ -29,17 +42,19 @@ export class TimelapseGenerator {
     
     // Write frames to virtual filesystem
     for (let i = 0; i < this.frames.length; i++) {
-      const base64 = this.frames[i].split(',')[1];
+      const base64 = this.frames[i].split('_')[2].split(',')[1];
       const buffer = Buffer.from(base64, 'base64');
       await this.ffmpeg.writeFile(`frame${i.toString().padStart(4, '0')}.png`, buffer);
     }
     
     // Generate video from frames
     await this.ffmpeg.exec([
-      '-framerate', '30',
+      '-framerate', '60',
       '-pattern_type', 'sequence',
       '-i', 'frame%04d.png',
       '-c:v', 'libx264',
+      '-preset', 'medium',
+      '-crf', '23',
       '-pix_fmt', 'yuv420p',
       'output.mp4'
     ]);

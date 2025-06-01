@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
+import { TimelapseGallery } from './TimelapseGallery';
 
 export const LandingPage = () => {
   const setWorldId = useGameStore(state => state.setWorldId);
@@ -92,6 +93,13 @@ export const LandingPage = () => {
         >
           {localStorage.getItem('lastWorldId') ? 'Return to Building' : 'Join a World'}
         </button>
+
+        <div className="mt-16">
+          <h2 className="text-3xl font-bold text-text-primary mb-8">
+            Recent Masterpieces
+          </h2>
+          <TimelapseGallery />
+        </div>
 
         <p className="text-text-secondary text-sm">
           Built with ❤️ using bolt.new for the World's Biggest Hackathon
