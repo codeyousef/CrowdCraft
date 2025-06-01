@@ -16,6 +16,7 @@ import { usePresence } from './hooks/usePresence';
 import { ActiveUsers } from './components/ActiveUsers';
 import { useWorldReset } from './hooks/useWorldReset';
 import { useWorldHistory } from './hooks/useWorldHistory';
+import { LandingPage } from './components/LandingPage';
 import { PlayerName } from './components/PlayerName';
 
 interface DebugMessage {
@@ -72,6 +73,10 @@ function App() {
         position: 'relative',
         overflow: 'hidden'
       }}>
+        {!worldId ? (
+          <LandingPage />
+        ) : (
+          <>
         <WorldTimer />
         <ConnectionStatus />
         <PlayerName />
@@ -91,6 +96,8 @@ function App() {
         }}>
           <BlockSelector />
         </div>
+          </>
+        )}
       </div>
     </ErrorBoundary>
   );
