@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
-import { Block } from '../types/game';
+import { Block, BlockType } from '../types/game';
 
 export const useCurrentWorld = () => {
-  const setWorldId = useGameStore(state => state.setWorldId);
-  const setWorldTimes = useGameStore(state => state.setWorldTimes);
-  const setBlocks = useGameStore(state => state.setBlocks);
+  const { setWorldId, setWorldTimes, setBlocks } = useGameStore();
   
   useEffect(() => {
     const loadCurrentWorld = async () => {
@@ -19,22 +17,20 @@ export const useCurrentWorld = () => {
         const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
           .select()
-          .order('created_at', { ascending: false })
+          .order('started_at', { ascending: false })
+          .not('started_at', 'is', null)
           .limit(1);
           
         if (fetchError) throw fetchError;
         
         let world = worlds?.[0];
         
-        if (!world) {
-          const resetAt = new Date();
-          resetAt.setMinutes(resetAt.getMinutes() + 30); // 30 minutes from now
-          
+        // If no active world exists, create one
+        if (!world || (world.reset_at && new Date(world.reset_at) <= new Date())) {
           const { data: newWorld, error: createError } = await supabase
             .from('worlds')
             .insert([
               { 
-                reset_at: resetAt.toISOString(),
                 total_blocks: 0,
                 unique_builders: 0
               }
@@ -46,36 +42,8 @@ export const useCurrentWorld = () => {
           world = newWorld;
         }
         
-        // Add type checking and null check before accessing world properties
-        if (world && typeof world === 'object' && 'id' in world && 'reset_at' in world) {
-          setWorldId(world.id);
-          const resetAt = new Date(world.reset_at);
-          const now = Date.now();
-          const remainingTime = Math.max(0, Math.floor((resetAt.getTime() - now) / 1000));
-          setWorldTimer(remainingTime);
-          
-          // If timer is expired, create a new world
-          if (remainingTime <= 0) {
-            const newResetAt = new Date();
-            newResetAt.setMinutes(newResetAt.getMinutes() + 30);
-            
-            const { data: newWorld, error: createError } = await supabase
-              .from('worlds')
-              .insert([{ 
-                reset_at: newResetAt.toISOString(),
-                total_blocks: 0,
-                unique_builders: 0
-              }])
-              .select()
-              .single();
-              
-            if (createError) throw createError;
-            if (newWorld) {
-            }
-          }
-          if ('started_at' in world && 'reset_at' in world) {
-            setWorldTimes(world.started_at, world.reset_at);
-          }
+        if (world && typeof world === 'object' && 'id' in world) {
+          setWorldTimes(world.started_at, world.reset_at);
           
           try {
             const { data: blocks, error: blocksError } = await supabase
@@ -111,5 +79,5 @@ export const useCurrentWorld = () => {
     };
     
     loadCurrentWorld();
-  }, [setWorldId, setWorldTimer, setBlocks]);
+  }, [setWorldId, setWorldTimes, setBlocks]);
 };

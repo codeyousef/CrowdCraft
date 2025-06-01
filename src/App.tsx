@@ -8,6 +8,7 @@ import { useSupabaseStatus } from './hooks/useSupabaseStatus';
 import { DebugOverlay } from './components/DebugOverlay';
 import { supabase } from './lib/supabase';
 import { useEffect, useState } from 'react';
+import { useCurrentWorld } from './hooks/useCurrentWorld';
 import { ConnectionStatus } from './components/ConnectionStatus';
 import { usePerformanceMonitor } from './hooks/usePerformanceMonitor';
 import { usePresence } from './hooks/usePresence';
@@ -25,6 +26,7 @@ function App() {
   const [debugMessages, setDebugMessages] = useState<DebugMessage[]>([]);
   const [showDebug, setShowDebug] = useState(false);
   
+  useCurrentWorld();
   // Monitor Supabase connection status
   useSupabaseStatus();
   usePerformanceMonitor();
@@ -57,39 +59,6 @@ function App() {
     return () => { console.log = originalLog; };
   }, []);
 
-  useEffect(() => {
-    // Set a test world ID and ensure it exists
-    if (!worldId) {
-      const createWorld = async () => {
-        // Generate a proper UUID for the world
-        const testWorldId = crypto.randomUUID();
-        
-        try {
-          // Create world in database
-          const { error } = await supabase
-            .from('worlds')
-            .insert({
-              id: testWorldId,
-              reset_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
-              total_blocks: 0,
-              unique_builders: 0
-            });
-            
-          if (error) throw error;
-          
-          setWorldId(testWorldId);
-          console.log('✅ Created world in database:', testWorldId);
-        } catch (error: any) {
-          console.error('Failed to create world:', error.message);
-          // Still set the world ID for local testing
-          setWorldId(testWorldId);
-          console.log('⚠️ Using local world only:', testWorldId);
-        }
-      };
-      
-      createWorld();
-    }
-  }, [worldId, setWorldId]);
 
   return (
     <ErrorBoundary>
