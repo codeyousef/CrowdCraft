@@ -244,13 +244,22 @@ export const IsometricGrid = () => {
   const viewport = isTouchDevice ? touchViewport : desktopViewport;
   const worldId = useGameStore(state => state.worldId);
   const appRef = useRef<PIXI.Application>();
+  const [loadingMessage, setLoadingMessage] = useState('Loading textures...');
 
   // Subscribe to real-time updates
   useRealtimeBlocks(worldId || '');
   useTimelapse(worldId, appRef.current || null);
 
   useEffect(() => {
-    loadTextures().then(setTextures);
+    loadTextures()
+      .then(textures => {
+        setTextures(textures);
+        console.log('✅ Textures loaded successfully');
+      })
+      .catch(error => {
+        console.error('❌ Failed to load textures:', error);
+        setLoadingMessage('Error loading textures. Please refresh.');
+      });
   }, []);
 
   const handleTileClick = useCallback((x: number, y: number) => {
@@ -265,7 +274,7 @@ export const IsometricGrid = () => {
   }, [placeBlock]);
 
   if (!textures) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner message={loadingMessage} />;
   }
 
   return (
