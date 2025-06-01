@@ -13,8 +13,6 @@ const BLOCKS: { type: BlockType; emoji: string }[] = [
 
 export const BlockSelector = () => {
   const { currentTool, setCurrentTool } = useGameStore();
-  
-  console.log('BlockSelector rendering with currentTool:', currentTool);
 
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
