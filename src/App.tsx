@@ -16,6 +16,7 @@ import { usePresence } from './hooks/usePresence';
 import { ActiveUsers } from './components/ActiveUsers';
 import { useWorldReset } from './hooks/useWorldReset';
 import { useWorldHistory } from './hooks/useWorldHistory';
+import { PlayerName } from './components/PlayerName';
 
 interface DebugMessage {
   text: string;
@@ -73,7 +74,7 @@ function App() {
       }}>
         <WorldTimer />
         <ConnectionStatus />
-        <PlayerStats />
+        <PlayerName />
         <PlayerStats />
         <ActiveUsers />
         <DebugOverlay messages={debugMessages} visible={showDebug} />
