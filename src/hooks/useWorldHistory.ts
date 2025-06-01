@@ -8,16 +8,23 @@ export const useWorldHistory = (worldId: string | null) => {
   useEffect(() => {
     if (!worldId) return;
     
-    // Subscribe to unique builders updates
+    // Subscribe to unique builders updates using postgres_changes
     const subscription = supabase
-      .from('worlds')
-      .select('unique_builders')
-      .eq('id', worldId)
-      .on('UPDATE', payload => {
-        if (payload.new && payload.new.unique_builders !== undefined) {
-          useGameStore.getState().setUniqueBuilders(payload.new.unique_builders);
+      .channel('world_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'worlds',
+          filter: `id=eq.${worldId}`
+        },
+        (payload) => {
+          if (payload.new && payload.new.unique_builders !== undefined) {
+            useGameStore.getState().setUniqueBuilders(payload.new.unique_builders);
+          }
         }
-      })
+      )
       .subscribe();
     
     const saveSnapshot = async () => {
