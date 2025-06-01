@@ -77,25 +77,31 @@ function App() {
           <LandingPage />
         ) : (
           <>
-        <WorldTimer />
-        <ConnectionStatus />
-        <PlayerName />
-        <PlayerStats />
-        <ActiveUsers />
-        <DebugOverlay messages={debugMessages} visible={showDebug} />
-        <IsometricGrid />
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 999,
-          backgroundColor: '#1e293b',
-          borderTop: '2px solid #6366f1',
-          padding: '16px'
-        }}>
-          <BlockSelector />
-        </div>
+            <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4">
+              <div className="flex items-center gap-4">
+                <PlayerName />
+                <ActiveUsers />
+              </div>
+              <div className="flex items-center gap-4">
+                <PlayerStats />
+                <ConnectionStatus />
+              </div>
+            </div>
+            <WorldTimer />
+            <DebugOverlay messages={debugMessages} visible={showDebug} />
+            <IsometricGrid />
+            <div style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 999,
+              backgroundColor: '#1e293b',
+              borderTop: '2px solid #6366f1',
+              padding: '16px'
+            }}>
+              <BlockSelector />
+            </div>
           </>
         )}
       </div>
