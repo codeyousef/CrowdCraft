@@ -5,6 +5,15 @@ import { differenceInSeconds, formatDistance } from 'date-fns';
 export const WorldTimer = () => {
   const { worldStartTime, worldEndTime } = useGameStore();
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 WorldTimer state:', { 
+      worldStartTime, 
+      worldEndTime,
+      timeUntilEnd: worldEndTime ? Math.max(0, Math.floor((new Date(worldEndTime).getTime() - Date.now()) / 1000)) : 'no end time'
+    });
+  }, [worldStartTime, worldEndTime]);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -43,7 +52,13 @@ export const WorldTimer = () => {
 
   const minutes = Math.floor((remainingSeconds || 0) / 60);
   const seconds = (remainingSeconds || 0) % 60;
-  const progress = ((remainingSeconds || 0) / (30 * 60)) * 100;
+  
+  // Calculate total duration from start and end times
+  const totalDuration = worldStartTime && worldEndTime 
+    ? differenceInSeconds(new Date(worldEndTime), new Date(worldStartTime))
+    : 30 * 60; // fallback to 30 minutes
+    
+  const progress = ((remainingSeconds || 0) / totalDuration) * 100;
 
   return (
     <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 bg-surface/90 backdrop-blur-sm border border-border rounded-b-lg shadow-lg">
