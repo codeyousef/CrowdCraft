@@ -5,7 +5,7 @@ import { Block } from '../types/game';
 
 export const useCurrentWorld = () => {
   const setWorldId = useGameStore(state => state.setWorldId);
-  const setWorldTimer = useGameStore(state => state.setWorldTimer);
+  const setWorldTimes = useGameStore(state => state.setWorldTimes);
   const setBlocks = useGameStore(state => state.setBlocks);
   
   useEffect(() => {
@@ -71,11 +71,8 @@ export const useCurrentWorld = () => {
               
             if (createError) throw createError;
             if (newWorld) {
-              setWorldId(newWorld.id);
-              setWorldTimer(1800); // 30 minutes in seconds
-              setBlocks(new Map()); // Clear blocks for new world
-              return;
-            }
+          if ('started_at' in world && 'reset_at' in world) {
+            setWorldTimes(world.started_at, world.reset_at);
           }
           
           try {

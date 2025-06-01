@@ -8,11 +8,12 @@ interface GameState {
   currentTool: BlockType;
   userName: string;
   activeUsers: Set<string>;
-  worldTimer: number;
+  worldStartTime: string | null;
+  worldEndTime: string | null;
   connectionStatus: 'connected' | 'connecting' | 'disconnected';
   setActiveUsers: (users: Set<string>) => void;
   setWorldId: (id: string | null) => void;
-  setWorldTimer: (time: number) => void;
+  setWorldTimes: (startTime: string | null, endTime: string | null) => void;
   setBlocks: (blocks: Map<string, Block>) => void;
   worldId: string | null;
   placeBlock: (x: number, y: number) => void;
@@ -32,23 +33,23 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentTool: 'grass',
   userName: generateAnimalName(),
   activeUsers: new Set(),
-  worldTimer: 1800, // 30 minutes
+  worldStartTime: null,
+  worldEndTime: null,
   worldId: null,
   connectionStatus: 'connecting',
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setActiveUsers: (users) => set({ activeUsers: users }),
 
   setWorldId: (id: string | null) => set({ worldId: id }),
-  setWorldTimer: (time: number) => {
-    if (typeof time === 'number' && !isNaN(time)) {
-      set({ worldTimer: Math.max(0, time) });
-    }
-  },
+  setWorldTimes: (startTime: string | null, endTime: string | null) => set({ 
+    worldStartTime: startTime,
+    worldEndTime: endTime
+  }),
   setBlocks: (blocks: Map<string, Block>) => set({ blocks }),
 
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
-    const { currentTool, userName, blocks, worldId } = get();
+    const { currentTool, userName, blocks, worldId, worldStartTime } = get();
     
     console.log('🎮 Block placement attempt:', {
       coordinates: { x, y },
@@ -70,6 +71,27 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
     
     const now = Date.now();
+    
+    // If this is the first block, start the timer
+    if (!worldStartTime) {
+      const startTime = new Date().toISOString();
+      const endTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      
+      try {
+        const { error } = await supabase
+          .from('worlds')
+          .update({ 
+            started_at: startTime,
+            reset_at: endTime
+          })
+          .eq('id', worldId);
+          
+        if (error) throw error;
+        get().setWorldTimes(startTime, endTime);
+      } catch (error: any) {
+        console.error('Failed to update world times:', error.message);
+      }
+    }
     
     // Place block locally first (optimistic update)
     set({

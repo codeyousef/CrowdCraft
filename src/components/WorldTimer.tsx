@@ -1,28 +1,49 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
-
-const THIRTY_MINUTES = 1800;
+import { differenceInSeconds, formatDistance } from 'date-fns';
 
 export const WorldTimer = () => {
-  const { worldTimer, setWorldTimer } = useGameStore();
+  const { worldStartTime, worldEndTime } = useGameStore();
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setWorldTimer(prev => {
-        if (typeof prev !== 'number' || isNaN(prev)) {
-          return THIRTY_MINUTES;
-        }
-        return Math.max(0, prev - 1);
-      });
-    }, 1000);
+    const updateTimer = () => {
+      if (!worldEndTime) {
+        setRemainingSeconds(null);
+        return;
+      }
 
-    return () => clearInterval(timer);
-  }, [setWorldTimer]);
+      const now = new Date();
+      const end = new Date(worldEndTime);
+      const remaining = differenceInSeconds(end, now);
+      setRemainingSeconds(Math.max(0, remaining));
+    };
 
-  const validTimer = typeof worldTimer === 'number' && !isNaN(worldTimer) ? worldTimer : THIRTY_MINUTES;
-  const minutes = Math.floor(validTimer / 60);
-  const seconds = validTimer % 60;
-  const progress = (validTimer / THIRTY_MINUTES) * 100;
+    // Update immediately
+    updateTimer();
+
+    // Then update every second
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [worldEndTime]);
+
+  if (!worldStartTime || !worldEndTime) {
+    return (
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 bg-surface/90 backdrop-blur-sm border border-border rounded-b-lg shadow-lg">
+        <div className="px-6 py-3">
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-xl font-semibold flex items-center gap-2">
+              ⏱️ Place the first block to start
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const minutes = Math.floor((remainingSeconds || 0) / 60);
+  const seconds = (remainingSeconds || 0) % 60;
+  const progress = ((remainingSeconds || 0) / (30 * 60)) * 100;
 
   return (
     <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 bg-surface/90 backdrop-blur-sm border border-border rounded-b-lg shadow-lg">
@@ -40,6 +61,9 @@ export const WorldTimer = () => {
               }`}
               style={{ width: `${progress}%` }}
             />
+          </div>
+          <div className="text-sm text-text-secondary">
+            Started {formatDistance(new Date(worldStartTime), new Date(), { addSuffix: true })}
           </div>
         </div>
       </div>
