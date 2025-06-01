@@ -3,6 +3,8 @@
   "dependencies": {
     "@pixi/react": "^7.1.1",
     "@pixi/core": "^7.3.2",
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/util": "^0.12.1",
     "@supabase/supabase-js": "^2.39.3",
     "pixi.js": "^7.3.2",
     "react": "^18.2.0",

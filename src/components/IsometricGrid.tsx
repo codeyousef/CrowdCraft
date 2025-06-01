@@ -9,6 +9,7 @@ import { useTouchControls } from '../hooks/useTouchControls';
 import { useRealtimeBlocks } from '../hooks/useRealtimeBlocks';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useGameStore } from '../store/gameStore';
+import { useTimelapse } from '../hooks/useTimelapse';
 
 interface IsometricGridContentProps {
   textures: Record<string, PIXI.Texture>;
@@ -165,9 +166,11 @@ export const IsometricGrid = () => {
   const isTouchDevice = 'ontouchstart' in window;
   const viewport = isTouchDevice ? touchViewport : desktopViewport;
   const worldId = useGameStore(state => state.worldId);
+  const appRef = useRef<PIXI.Application>();
 
   // Subscribe to real-time updates
   useRealtimeBlocks(worldId || '');
+  useTimelapse(worldId, appRef.current || null);
 
   useEffect(() => {
     loadTextures().then(setTextures);
@@ -193,6 +196,7 @@ export const IsometricGrid = () => {
       width={window.innerWidth}
       height={window.innerHeight}
       style={{ position: 'fixed', zIndex: 1 }}
+      onMount={app => { appRef.current = app; }}
       eventMode="static"
       options={{ 
         backgroundColor: 0x0F172A,
