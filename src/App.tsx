@@ -13,6 +13,7 @@ import { usePerformanceMonitor } from './hooks/usePerformanceMonitor';
 import { usePresence } from './hooks/usePresence';
 import { ActiveUsers } from './components/ActiveUsers';
 import { useWorldReset } from './hooks/useWorldReset';
+import { useWorldHistory } from './hooks/useWorldHistory';
 
 interface DebugMessage {
   text: string;
@@ -29,6 +30,7 @@ function App() {
   usePerformanceMonitor();
   usePresence(worldId);
   useWorldReset(worldId);
+  useWorldHistory(worldId);
   
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
