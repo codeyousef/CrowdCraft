@@ -8,6 +8,18 @@ export const useWorldHistory = (worldId: string | null) => {
   useEffect(() => {
     if (!worldId) return;
     
+    // Subscribe to unique builders updates
+    const subscription = supabase
+      .from('worlds')
+      .select('unique_builders')
+      .eq('id', worldId)
+      .on('UPDATE', payload => {
+        if (payload.new && payload.new.unique_builders !== undefined) {
+          useGameStore.getState().setUniqueBuilders(payload.new.unique_builders);
+        }
+      })
+      .subscribe();
+    
     const saveSnapshot = async () => {
       // Convert blocks Map to array for storage
       const blockArray = Array.from(blocks.entries()).map(([key, block]) => {
@@ -44,6 +56,9 @@ export const useWorldHistory = (worldId: string | null) => {
     // Save snapshot every 5 minutes
     const interval = setInterval(saveSnapshot, 5 * 60 * 1000);
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      subscription.unsubscribe();
+    };
   }, [worldId, blocks]);
 };
