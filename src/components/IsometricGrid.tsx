@@ -192,14 +192,20 @@ export const IsometricGrid = () => {
     <Stage
       width={window.innerWidth}
       height={window.innerHeight}
-      style={{ position: 'fixed', zIndex: 1, pointerEvents: 'auto' }}
+      style={{ position: 'fixed', zIndex: 1 }}
       eventMode="static"
       options={{ 
         backgroundColor: 0x0F172A,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
-        eventFeatures: { click: true, move: true, wheel: true },
+        eventFeatures: { 
+          click: true, 
+          move: true, 
+          wheel: true,
+          globalMove: true,
+          globalClick: true
+        },
         preserveDrawingBuffer: true,
         powerPreference: 'default'
       }}

@@ -7,11 +7,14 @@ interface DebugMessage {
 
 interface DebugOverlayProps {
   messages: DebugMessage[];
+  visible?: boolean;
 }
 
 const MAX_MESSAGES = 100;
 
-export const DebugOverlay: React.FC<DebugOverlayProps> = ({ messages }) => {
+export const DebugOverlay: React.FC<DebugOverlayProps> = ({ messages, visible = true }) => {
+  if (!visible) return null;
+
   return (
     <div className="fixed top-20 right-4 bg-surface/95 backdrop-blur rounded-lg p-4 w-96 max-h-[80vh] overflow-y-auto shadow-xl border-2 border-primary/20 pointer-events-auto">
       <div className="flex justify-between items-center mb-2 pb-2 border-b border-border">
@@ -33,7 +36,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ messages }) => {
             className={`py-1.5 px-2 rounded bg-surface/50 text-text-primary whitespace-pre-wrap break-all hover:bg-surface-hover transition-colors ${
               msg.text.includes('❌') ? 'text-red-500' :
               msg.text.includes('⚠️') ? 'text-yellow-500' :
-              msg.text.includes('✅') ? 'text-green-500' :
+              msg.text.includes('✅') ? 'text-emerald-500' :
               msg.text.includes('📍') ? 'text-blue-500' :
               msg.text.includes('🎯') ? 'text-purple-500' :
               msg.text.includes('🖱️') ? 'text-indigo-500' :

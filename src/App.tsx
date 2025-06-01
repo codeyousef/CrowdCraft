@@ -4,13 +4,45 @@ import { BlockSelector } from './components/BlockSelector';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { WorldTimer } from './components/WorldTimer';
 import { useGameStore } from './store/gameStore';
+import { DebugOverlay } from './components/DebugOverlay';
 import { supabase } from './lib/supabase';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
+interface DebugMessage {
+  text: string;
+  timestamp: number;
+}
 
 function App() {
   const { worldId, setWorldId } = useGameStore();
+  const [debugMessages, setDebugMessages] = useState<DebugMessage[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
   
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === '`' || (e.ctrlKey && e.key === 'd')) {
+        e.preventDefault();
+        setShowDebug(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // Override console.log to capture debug messages
+  useEffect(() => {
+    const originalLog = console.log;
+    console.log = (...args) => {
+      originalLog.apply(console, args);
+      setDebugMessages(prev => [
+        ...prev,
+        { text: args.join(' '), timestamp: Date.now() }
+      ].slice(-100)); // Keep last 100 messages
+    };
+    return () => { console.log = originalLog; };
+  }, []);
+
   useEffect(() => {
     // Set a test world ID and ensure it exists
     if (!worldId) {
@@ -56,6 +88,7 @@ function App() {
         overflow: 'hidden'
       }}>
         <WorldTimer />
+        <DebugOverlay messages={debugMessages} visible={showDebug} />
         <IsometricGrid />
         <div style={{
           position: 'fixed',
