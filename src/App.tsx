@@ -77,17 +77,19 @@ function App() {
           <LandingPage />
         ) : (
           <>
-            <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4">
-              <div className="flex items-center gap-4">
+            <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-surface/80 backdrop-blur border-b border-border">
+              <div className="flex items-center gap-6">
                 <PlayerName />
                 <ActiveUsers />
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
                 <PlayerStats />
                 <ConnectionStatus />
               </div>
             </div>
-            <WorldTimer />
+            <div className="mt-20">
+              <WorldTimer />
+            </div>
             <DebugOverlay messages={debugMessages} visible={showDebug} />
             <IsometricGrid />
             <div style={{
