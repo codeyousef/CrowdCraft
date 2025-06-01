@@ -12,6 +12,7 @@ import { ConnectionStatus } from './components/ConnectionStatus';
 import { usePerformanceMonitor } from './hooks/usePerformanceMonitor';
 import { usePresence } from './hooks/usePresence';
 import { ActiveUsers } from './components/ActiveUsers';
+import { useWorldReset } from './hooks/useWorldReset';
 
 interface DebugMessage {
   text: string;
@@ -27,6 +28,7 @@ function App() {
   useSupabaseStatus();
   usePerformanceMonitor();
   usePresence(worldId);
+  useWorldReset(worldId);
   
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
