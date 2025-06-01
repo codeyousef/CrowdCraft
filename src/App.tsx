@@ -8,6 +8,8 @@ import { useSupabaseStatus } from './hooks/useSupabaseStatus';
 import { DebugOverlay } from './components/DebugOverlay';
 import { supabase } from './lib/supabase';
 import { useEffect, useState } from 'react';
+import { ConnectionStatus } from './components/ConnectionStatus';
+import { usePerformanceMonitor } from './hooks/usePerformanceMonitor';
 
 interface DebugMessage {
   text: string;
@@ -21,6 +23,7 @@ function App() {
   
   // Monitor Supabase connection status
   useSupabaseStatus();
+  usePerformanceMonitor();
   
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -92,6 +95,7 @@ function App() {
         overflow: 'hidden'
       }}>
         <WorldTimer />
+        <ConnectionStatus />
         <DebugOverlay messages={debugMessages} visible={showDebug} />
         <IsometricGrid />
         <div style={{

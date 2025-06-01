@@ -9,6 +9,7 @@ interface GameState {
   userName: string;
   activeUsers: Set<string>;
   worldTimer: number;
+  connectionStatus: 'connected' | 'connecting' | 'disconnected';
   setWorldId: (id: string | null) => void;
   setWorldTimer: (time: number) => void;
   setBlocks: (blocks: Map<string, Block>) => void;
@@ -16,6 +17,7 @@ interface GameState {
   placeBlock: (x: number, y: number) => void;
   setCurrentTool: (tool: BlockType) => void;
   updateBlock: (x: number, y: number, block: Omit<Block, 'placedAt'>) => void;
+  setConnectionStatus: (status: GameState['connectionStatus']) => void;
 }
 
 const generateAnimalName = () => {
@@ -31,6 +33,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   activeUsers: new Set(),
   worldTimer: 1800, // 30 minutes
   worldId: null,
+  connectionStatus: 'connecting',
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
 
   setWorldId: (id: string | null) => set({ worldId: id }),
   setWorldTimer: (time: number) => {
