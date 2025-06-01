@@ -43,6 +43,7 @@ export const useCurrentWorld = () => {
         }
         
         if (world && typeof world === 'object' && 'id' in world) {
+          setWorldId(world.id);
           setWorldTimes(world.started_at, world.reset_at);
           
           try {
