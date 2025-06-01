@@ -10,6 +10,7 @@ interface GameState {
   activeUsers: Set<string>;
   worldTimer: number;
   connectionStatus: 'connected' | 'connecting' | 'disconnected';
+  setActiveUsers: (users: Set<string>) => void;
   setWorldId: (id: string | null) => void;
   setWorldTimer: (time: number) => void;
   setBlocks: (blocks: Map<string, Block>) => void;
@@ -35,6 +36,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   worldId: null,
   connectionStatus: 'connecting',
   setConnectionStatus: (status) => set({ connectionStatus: status }),
+  setActiveUsers: (users) => set({ activeUsers: users }),
 
   setWorldId: (id: string | null) => set({ worldId: id }),
   setWorldTimer: (time: number) => {
