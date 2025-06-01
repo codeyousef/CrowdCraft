@@ -4,6 +4,7 @@ import { BlockSelector } from './components/BlockSelector';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { WorldTimer } from './components/WorldTimer';
 import { useGameStore } from './store/gameStore';
+import { PlayerStats } from './components/PlayerStats';
 import { useSupabaseStatus } from './hooks/useSupabaseStatus';
 import { DebugOverlay } from './components/DebugOverlay';
 import { supabase } from './lib/supabase';
@@ -72,6 +73,7 @@ function App() {
       }}>
         <WorldTimer />
         <ConnectionStatus />
+        <PlayerStats />
         <ActiveUsers />
         <DebugOverlay messages={debugMessages} visible={showDebug} />
         <IsometricGrid />
