@@ -74,6 +74,7 @@ function App() {
         <WorldTimer />
         <ConnectionStatus />
         <PlayerStats />
+        <PlayerStats />
         <ActiveUsers />
         <DebugOverlay messages={debugMessages} visible={showDebug} />
         <IsometricGrid />
