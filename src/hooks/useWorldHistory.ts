@@ -1,15 +1,16 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 export const useWorldHistory = (worldId: string | null) => {
   const { blocks } = useGameStore();
+  const setUniqueBuilders = useGameStore(state => state.setUniqueBuilders);
   
   useEffect(() => {
     if (!worldId) return;
     
-    // Subscribe to unique builders updates using postgres_changes
-    const subscription = supabase
+    const channel = supabase
       .channel('world_updates')
       .on(
         'postgres_changes',
@@ -19,9 +20,9 @@ export const useWorldHistory = (worldId: string | null) => {
           table: 'worlds',
           filter: `id=eq.${worldId}`
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<{ unique_builders: number }>) => {
           if (payload.new && payload.new.unique_builders !== undefined) {
-            useGameStore.getState().setUniqueBuilders(payload.new.unique_builders);
+            setUniqueBuilders(payload.new.unique_builders);
           }
         }
       )
@@ -65,7 +66,7 @@ export const useWorldHistory = (worldId: string | null) => {
     
     return () => {
       clearInterval(interval);
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [worldId, blocks]);
+  }, [worldId, blocks, setUniqueBuilders]);
 };
