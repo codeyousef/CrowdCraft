@@ -77,20 +77,22 @@ function App() {
           <LandingPage />
         ) : (
           <>
-            <div className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur border-b border-border">
-              <div className="container mx-auto px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    <PlayerName />
-                    <PlayerStats />
-                  </div>
-                  <div>
-                    <ConnectionStatus />
+            <div className="fixed top-0 left-0 right-0 z-50">
+              <div className="bg-surface/80 backdrop-blur border-b border-border px-4 py-3">
+                <div className="container mx-auto px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                      <PlayerName />
+                      <PlayerStats />
+                    </div>
+                    <div className="ml-auto">
+                      <ConnectionStatus />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mt-16">
+            <div className="mt-24">
               <WorldTimer />
             </div>
             <DebugOverlay messages={debugMessages} visible={showDebug} />
