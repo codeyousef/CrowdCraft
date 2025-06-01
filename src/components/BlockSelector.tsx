@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { BlockType } from '../types/game';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const BLOCKS: { type: BlockType; emoji: string }[] = [
   { type: 'grass', emoji: '🌱' },
@@ -13,29 +14,28 @@ const BLOCKS: { type: BlockType; emoji: string }[] = [
 
 export const BlockSelector = () => {
   const { currentTool, setCurrentTool } = useGameStore();
+  const isMobile = useMediaQuery('(max-width: 640px)');
 
   return (
-    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+    <div className="flex items-center justify-center gap-2 p-2">
         {BLOCKS.map(({ type, emoji }) => (
           <button
             key={type}
             onClick={() => setCurrentTool(type)}
-            style={{
-              width: '48px',
-              height: '48px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '8px',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '24px',
-              backgroundColor: currentTool === type ? '#3b82f6' : '#6b7280'
-            }}
+            className={`
+              flex items-center justify-center
+              ${isMobile ? 'w-12 h-12' : 'w-14 h-14'}
+              rounded-lg border-2 transition-all
+              ${currentTool === type 
+                ? 'bg-primary border-primary-hover scale-110' 
+                : 'bg-surface-hover border-transparent hover:border-primary/50'}
+              ${isMobile ? 'text-xl' : 'text-2xl'}
+              active:scale-95
+            `}
           >
             {emoji}
           </button>
         ))}
-      </div>
+    </div>
   );
 };
