@@ -64,6 +64,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ uniqueBuilders: count });
     }
   },
+  setUniqueBuilders: (count: number) => {
+    if (count !== get().uniqueBuilders) {
+      console.log('🏗️ Unique builders updated:', count);
+      set({ uniqueBuilders: count });
+    }
+  },
 
   setWorldId: (id: string | null) => {
     if (id) {
