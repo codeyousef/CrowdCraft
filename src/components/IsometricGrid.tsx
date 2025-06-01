@@ -245,6 +245,7 @@ export const IsometricGrid = () => {
   const worldId = useGameStore(state => state.worldId);
   const appRef = useRef<PIXI.Application>();
   const [loadingMessage, setLoadingMessage] = useState('Loading textures...');
+  const [loadError, setLoadError] = useState<string>();
 
   // Subscribe to real-time updates
   useRealtimeBlocks(worldId || '');
@@ -258,7 +259,7 @@ export const IsometricGrid = () => {
       })
       .catch(error => {
         console.error('❌ Failed to load textures:', error);
-        setLoadingMessage('Error loading textures. Please refresh.');
+        setLoadError('Failed to load game textures. Please check your connection and try again.');
       });
   }, []);
 
@@ -274,7 +275,7 @@ export const IsometricGrid = () => {
   }, [placeBlock]);
 
   if (!textures) {
-    return <LoadingSpinner message={loadingMessage} />;
+    return <LoadingSpinner message={loadingMessage} error={loadError} />;
   }
 
   return (
