@@ -4,6 +4,7 @@ import { BlockSelector } from './components/BlockSelector';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { WorldTimer } from './components/WorldTimer';
 import { useGameStore } from './store/gameStore';
+import { useSupabaseStatus } from './hooks/useSupabaseStatus';
 import { DebugOverlay } from './components/DebugOverlay';
 import { supabase } from './lib/supabase';
 import { useEffect, useState } from 'react';
@@ -17,6 +18,9 @@ function App() {
   const { worldId, setWorldId } = useGameStore();
   const [debugMessages, setDebugMessages] = useState<DebugMessage[]>([]);
   const [showDebug, setShowDebug] = useState(false);
+  
+  // Monitor Supabase connection status
+  useSupabaseStatus();
   
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
