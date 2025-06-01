@@ -10,6 +10,10 @@ export const useCurrentWorld = () => {
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
+    
+    // Clear worldId on initial load to show landing page
+    setWorldId(null);
+    
     const loadCurrentWorld = async () => {
       if (!supabase) {
         console.error('Supabase client not initialized');

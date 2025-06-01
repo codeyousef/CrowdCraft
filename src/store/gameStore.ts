@@ -53,7 +53,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   uniqueBuilders: 0,
   worldStartTime: localStorage.getItem('worldStartTime'),
   worldEndTime: localStorage.getItem('worldEndTime'),
-  worldId: localStorage.getItem('worldId'),
+  worldId: null,
   initializedWorldId: null,
   connectionStatus: 'connecting',
   setConnectionStatus: (status) => set({ connectionStatus: status }),
@@ -74,6 +74,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   setWorldId: (id: string | null) => {
     if (id) {
       localStorage.setItem('worldId', id);
+      localStorage.setItem('lastWorldId', id);
     } else {
       localStorage.removeItem('worldId');
     }

@@ -5,8 +5,29 @@ import { supabase } from '../lib/supabase';
 export const LandingPage = () => {
   const setWorldId = useGameStore(state => state.setWorldId);
 
+  const rejoinLastWorld = async () => {
+    const lastWorldId = localStorage.getItem('lastWorldId');
+    if (lastWorldId) {
+      const { data: world } = await supabase
+        .from('worlds')
+        .select('id')
+        .eq('id', lastWorldId)
+        .single();
+
+      if (world) {
+        setWorldId(world.id);
+        return true;
+      }
+    }
+    return false;
+  };
+
   const handleJoinWorld = async () => {
     try {
+      // Try to rejoin last world first
+      const rejoined = await rejoinLastWorld();
+      if (rejoined) return;
+
       // Find world with less than 50 players
       const { data: worlds, error } = await supabase
         .from('worlds')
@@ -66,7 +87,7 @@ export const LandingPage = () => {
           onClick={handleJoinWorld}
           className="bg-primary hover:bg-primary-hover text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all transform hover:scale-105 active:scale-95"
         >
-          Join a World
+          {localStorage.getItem('lastWorldId') ? 'Return to Building' : 'Join a World'}
         </button>
 
         <p className="text-text-secondary text-sm">
