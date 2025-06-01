@@ -8,6 +8,7 @@ interface GameState {
   currentTool: BlockType;
   userName: string;
   activeUsers: Set<string>;
+  uniqueBuilders: number;
   worldStartTime: string | null;
   worldEndTime: string | null;
   connectionStatus: 'connected' | 'connecting' | 'disconnected';
@@ -49,6 +50,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentTool: 'grass',
   userName: generateAnimalName(),
   activeUsers: new Set(),
+  uniqueBuilders: 0,
   worldStartTime: localStorage.getItem('worldStartTime'),
   worldEndTime: localStorage.getItem('worldEndTime'),
   worldId: localStorage.getItem('worldId'),
@@ -56,6 +58,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   connectionStatus: 'connecting',
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setActiveUsers: (users) => set({ activeUsers: users }),
+  setUniqueBuilders: (count: number) => set({ uniqueBuilders: count }),
 
   setWorldId: (id: string | null) => {
     if (id) {
