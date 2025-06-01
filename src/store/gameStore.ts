@@ -33,18 +33,22 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentTool: 'grass',
   userName: generateAnimalName(),
   activeUsers: new Set(),
-  worldStartTime: null,
-  worldEndTime: null,
+  worldStartTime: localStorage.getItem('worldStartTime'),
+  worldEndTime: localStorage.getItem('worldEndTime'),
   worldId: null,
   connectionStatus: 'connecting',
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setActiveUsers: (users) => set({ activeUsers: users }),
 
   setWorldId: (id: string | null) => set({ worldId: id }),
-  setWorldTimes: (startTime: string | null, endTime: string | null) => set({ 
-    worldStartTime: startTime,
-    worldEndTime: endTime
-  }),
+  setWorldTimes: (startTime: string | null, endTime: string | null) => {
+    if (startTime) localStorage.setItem('worldStartTime', startTime);
+    if (endTime) localStorage.setItem('worldEndTime', endTime);
+    set({ 
+      worldStartTime: startTime,
+      worldEndTime: endTime
+    });
+  },
   setBlocks: (blocks: Map<string, Block>) => set({ blocks }),
 
   placeBlock: async (x: number, y: number) => {

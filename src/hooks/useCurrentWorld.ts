@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
-import { Block, BlockType } from '../types/game';
+import { Block } from '../types/game';
 
 export const useCurrentWorld = () => {
   const { setWorldId, setWorldTimes, setBlocks } = useGameStore();
@@ -16,17 +16,16 @@ export const useCurrentWorld = () => {
       try {
         const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
-          .select()
-          .order('started_at', { ascending: false })
-          .not('started_at', 'is', null)
+          .select('*')
+          .order('created_at', { ascending: false })
           .limit(1);
           
         if (fetchError) throw fetchError;
         
         let world = worlds?.[0];
         
-        // If no active world exists, create one
-        if (!world || (world.reset_at && new Date(world.reset_at) <= new Date())) {
+        // If no world exists or current world has ended, create a new one
+        if (!world || (world.reset_at && new Date(world.reset_at) < new Date())) {
           const { data: newWorld, error: createError } = await supabase
             .from('worlds')
             .insert([
@@ -45,17 +44,19 @@ export const useCurrentWorld = () => {
         if (world && typeof world === 'object' && 'id' in world) {
           setWorldId(world.id);
           setWorldTimes(world.started_at, world.reset_at);
+          console.log('✅ Loaded world:', { id: world.id, started: world.started_at, ends: world.reset_at });
           
           try {
             const { data: blocks, error: blocksError } = await supabase
               .from('blocks')
-              .select()
+              .select('*')
               .eq('world_id', world.id);
             
             if (blocksError) throw blocksError;
             
             if (blocks) {
               const blockMap = new Map<string, Block>();
+              console.log(`📦 Loading ${blocks.length} blocks...`);
               blocks.forEach(block => {
                 blockMap.set(`${block.x},${block.y}`, {
                   type: block.block_type,
