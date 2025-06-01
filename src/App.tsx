@@ -77,16 +77,20 @@ function App() {
           <LandingPage />
         ) : (
           <>
-            <div className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur border-b border-border py-2">
+            <div className="fixed top-0 left-0 right-0 z-50 bg-surface/80 backdrop-blur border-b border-border">
               <div className="container mx-auto px-4 py-3">
-                <div className="grid grid-cols-3 items-center">
-                  <PlayerName />
-                  <PlayerStats />
-                  <ConnectionStatus />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <PlayerName />
+                    <PlayerStats />
+                  </div>
+                  <div>
+                    <ConnectionStatus />
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="mt-20">
+            <div className="mt-16">
               <WorldTimer />
             </div>
             <DebugOverlay messages={debugMessages} visible={showDebug} />
