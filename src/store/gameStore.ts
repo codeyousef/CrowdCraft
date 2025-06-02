@@ -187,6 +187,9 @@ export const useGameStore = create<GameState>((set, get) => {
       return;
     }
     
+    // Yield control at start
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
     try {
       console.log('🔍 initializeWorldTimer called for world:', worldId);
       const { data: worldData, error: worldError } = await supabase
@@ -221,9 +224,12 @@ export const useGameStore = create<GameState>((set, get) => {
           }
           // Keep existing times from localStorage
         } else {
-          console.log('🆕 No timer found anywhere, creating new 15-second timer');
+          console.log('🆕 No timer found anywhere, creating new 30-minute timer');
           const startTime = new Date().toISOString();
-          const endTime = new Date(Date.now() + 15 * 1000).toISOString();
+          const endTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+          
+          // Yield control before database update
+          await new Promise(resolve => setTimeout(resolve, 0));
           
           // Update world with start and end times
           const { error } = await supabase
@@ -249,11 +255,18 @@ export const useGameStore = create<GameState>((set, get) => {
       } else {
         // Use existing times from database
         console.log('♻️ Found existing timer, restoring from database');
+        
+        // Check if the world has already expired
+        const timeRemaining = Math.max(0, Math.floor((new Date(worldData.reset_at).getTime() - Date.now()) / 1000));
+        if (timeRemaining <= 0) {
+          console.log('⚠️ WARNING: Restoring timer for already expired world, world reset should trigger soon');
+        }
+        
         get().setWorldTimes(worldData.started_at, worldData.reset_at);
         console.log('⏰ Timer restored from database:', { 
           started: worldData.started_at, 
           ends: worldData.reset_at,
-          remaining: Math.max(0, Math.floor((new Date(worldData.reset_at).getTime() - Date.now()) / 1000))
+          remaining: timeRemaining
         });
       }
       
@@ -291,6 +304,13 @@ export const useGameStore = create<GameState>((set, get) => {
 
   joinWorld: async (targetWorldId?: string) => {
     console.log('🌍 joinWorld called with:', { targetWorldId });
+    
+    // Set loading state immediately to switch view
+    set({ currentView: 'world' });
+    
+    // Use setTimeout to make the heavy operations non-blocking
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
     try {
       let world = null;
 
@@ -308,9 +328,24 @@ export const useGameStore = create<GameState>((set, get) => {
           if (isActive) {
             world = targetWorld;
             console.log('✅ Joining specific world:', { id: world.id, started: world.started_at, ends: world.reset_at });
+          } else {
+            console.log('⏰ Requested world has expired, will create new world:', { 
+              id: targetWorld.id, 
+              reset_at: targetWorld.reset_at,
+              expired: targetWorld.reset_at ? new Date(targetWorld.reset_at) <= new Date() : false
+            });
+            // Clear the expired world from localStorage to avoid confusion
+            localStorage.removeItem('lastWorldId');
           }
+        } else if (targetError) {
+          console.log('❌ Failed to find requested world:', targetError.message);
+          // Clear the invalid world ID from localStorage
+          localStorage.removeItem('lastWorldId');
         }
       }
+
+      // Yield control before database query
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       // If no specific world or it's not available, find the latest world
       if (!world) {
@@ -328,6 +363,9 @@ export const useGameStore = create<GameState>((set, get) => {
           console.log('📥 Found latest world:', { id: world.id, started: world.started_at, ends: world.reset_at });
         }
       }
+      
+      // Yield control before potential world creation
+      await new Promise(resolve => setTimeout(resolve, 0));
       
       // If no world exists or current world has ended, create a new one
       if (!world || (world.reset_at && new Date(world.reset_at) < new Date())) {
@@ -352,15 +390,21 @@ export const useGameStore = create<GameState>((set, get) => {
         console.log('✅ Joined world:', { id: world.id, started: world.started_at, ends: world.reset_at });
         console.log('🕐 About to initialize world timer...');
         
-        // Initialize world timer FIRST before setting view to 'world'
+        // Yield control before timer initialization
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        // Initialize world timer FIRST before setting world ID
         await get().initializeWorldTimer(world.id);
         
         console.log('🕐 World timer initialization completed');
         
-        // Now set the world ID and switch to world view
-        set({ worldId: world.id, currentView: 'world' });
+        // Now set the world ID
+        set({ worldId: world.id });
         localStorage.setItem('worldId', world.id);
         localStorage.setItem('lastWorldId', world.id);
+        
+        // Yield control before loading blocks
+        await new Promise(resolve => setTimeout(resolve, 0));
         
         // Load blocks from database
         try {
@@ -389,6 +433,8 @@ export const useGameStore = create<GameState>((set, get) => {
       }
     } catch (error: any) {
       console.error('Failed to join world:', error.message);
+      // On error, go back to homepage
+      set({ currentView: 'homepage', worldId: null });
       throw error;
     }
   }

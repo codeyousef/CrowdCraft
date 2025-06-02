@@ -162,7 +162,7 @@ export class TimelapseGenerator {
     }
     
     try {
-      // Write frames to virtual filesystem
+      // Write frames to virtual filesystem with non-blocking processing
       for (let i = 0; i < this.frames.length; i++) {
         const frameData = this.frames[i];
         const base64Data = frameData.split('_')[2];
@@ -185,9 +185,17 @@ export class TimelapseGenerator {
         const filename = `frame${i.toString().padStart(4, '0')}.png`;
         await this.ffmpeg.writeFile(filename, bytes);
         console.log(`✅ Wrote frame ${i + 1}/${this.frames.length}`);
+        
+        // Yield control to prevent browser freeze
+        if (i % 3 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
       }
       
       console.log('🎬 Starting video encoding...');
+      
+      // Yield control before heavy FFmpeg operation
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Generate video from frames with optimized settings
       await this.ffmpeg.exec([
@@ -224,13 +232,18 @@ export class TimelapseGenerator {
   
   private async cleanup() {
     try {
-      // Clean up temporary files
+      // Clean up temporary files with non-blocking processing
       for (let i = 0; i < this.frames.length; i++) {
         const filename = `frame${i.toString().padStart(4, '0')}.png`;
         try {
           await this.ffmpeg.deleteFile(filename);
         } catch (e) {
           // File might not exist, ignore
+        }
+        
+        // Yield control every few operations to prevent freeze
+        if (i % 5 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
       

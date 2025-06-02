@@ -65,6 +65,12 @@ export const useTimelapse = (worldId: string | null, app: any) => {
       return;
     }
     
+    // Skip video generation in development to prevent browser freezing
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🧪 Development mode: Skipping video generation to prevent browser freeze');
+      return;
+    }
+    
     // Check if we have a valid current world with end time
     if (worldId && worldEndTime) {
       const isExpired = new Date(worldEndTime) <= new Date();

@@ -10,9 +10,26 @@ export const LandingPage = () => {
     try {
       // Try to rejoin last world first, otherwise join any available world
       const lastWorldId = localStorage.getItem('lastWorldId');
-      await joinWorld(lastWorldId || undefined);
+      console.log('🔄 Attempting to join world:', { lastWorldId });
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Join world timeout')), 10000)
+      );
+      
+      await Promise.race([
+        joinWorld(lastWorldId || undefined),
+        timeoutPromise
+      ]);
     } catch (error) {
       console.error('Failed to join world:', error);
+      // Clear any stale world data on error
+      localStorage.removeItem('lastWorldId');
+      localStorage.removeItem('worldId');
+      localStorage.removeItem('worldStartTime');
+      localStorage.removeItem('worldEndTime');
+      // Force reload to reset state
+      window.location.reload();
     }
   };
 
