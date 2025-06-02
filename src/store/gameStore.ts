@@ -13,7 +13,9 @@ interface GameState {
   worldEndTime: string | null;
   connectionStatus: 'connected' | 'connecting' | 'disconnected';
   initializedWorldId: string | null;
+  currentView: 'homepage' | 'world';
   setActiveUsers: (users: Set<string>) => void;
+  setUniqueBuilders: (count: number) => void;
   setWorldId: (id: string | null) => void;
   setWorldTimes: (startTime: string | null, endTime: string | null) => void;
   setBlocks: (blocks: Map<string, Block>) => void;
@@ -24,6 +26,9 @@ interface GameState {
   setConnectionStatus: (status: GameState['connectionStatus']) => void;
   initializeWorldTimer: (worldId: string) => Promise<void>;
   resetForDevelopment: () => void;
+  setCurrentView: (view: 'homepage' | 'world') => void;
+  navigateToHomepage: () => void;
+  joinWorld: (worldId?: string) => Promise<void>;
 }
 
 const generateAnimalName = () => {
@@ -56,14 +61,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   worldId: null,
   initializedWorldId: null,
   connectionStatus: 'connecting',
+  currentView: 'homepage',
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setActiveUsers: (users) => set({ activeUsers: users }),
-  setUniqueBuilders: (count: number) => {
-    if (count !== get().uniqueBuilders) {
-      console.log('🏗️ Unique builders updated:', count);
-      set({ uniqueBuilders: count });
-    }
-  },
   setUniqueBuilders: (count: number) => {
     if (count !== get().uniqueBuilders) {
       console.log('🏗️ Unique builders updated:', count);
@@ -84,7 +84,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     console.log('🕐 Setting world times:', { 
       startTime, 
       endTime,
-      remaining: endTime ? Math.max(0, Math.floor((new Date(endTime).getTime() - Date.now()) / 1000)) : 'no end time'
+      remaining: endTime ? Math.max(0, Math.floor((new Date(endTime).getTime() - Date.now()) / 1000)) : 'no end time',
+      willTriggerUpdate: startTime !== get().worldStartTime || endTime !== get().worldEndTime
     });
     
     // Persist world times to localStorage
@@ -215,9 +216,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           }
           // Keep existing times from localStorage
         } else {
-          console.log('🆕 No timer found anywhere, creating new 30-minute timer');
+          console.log('🆕 No timer found anywhere, creating new 15-second timer');
           const startTime = new Date().toISOString();
-          const endTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+          const endTime = new Date(Date.now() + 15 * 1000).toISOString();
           
           // Update world with start and end times
           const { error } = await supabase
@@ -269,5 +270,118 @@ export const useGameStore = create<GameState>((set, get) => ({
       initializedWorldId: null
     });
     console.log('🔄 Development reset: cleared local storage and state');
+    // Reload to start fresh
+    window.location.reload();
+  },
+
+  setCurrentView: (view: 'homepage' | 'world') => set({ currentView: view }),
+  
+  navigateToHomepage: () => {
+    set({ currentView: 'homepage', worldId: null });
+    localStorage.removeItem('autoJoin');
+  },
+
+  joinWorld: async (targetWorldId?: string) => {
+    console.log('🌍 joinWorld called with:', { targetWorldId });
+    try {
+      let world = null;
+
+      // If a specific world ID is provided, try to join that world
+      if (targetWorldId) {
+        const { data: targetWorld, error: targetError } = await supabase
+          .from('worlds')
+          .select('*')
+          .eq('id', targetWorldId)
+          .single();
+        
+        if (!targetError && targetWorld) {
+          // Check if world is still active
+          const isActive = !targetWorld.reset_at || new Date(targetWorld.reset_at) > new Date();
+          if (isActive) {
+            world = targetWorld;
+            console.log('✅ Joining specific world:', { id: world.id, started: world.started_at, ends: world.reset_at });
+          }
+        }
+      }
+
+      // If no specific world or it's not available, find the latest world
+      if (!world) {
+        console.log('🔍 Finding latest world...');
+        const { data: worlds, error: fetchError } = await supabase
+          .from('worlds')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (fetchError) throw fetchError;
+      
+        world = worlds?.[0];
+        if (world) {
+          console.log('📥 Found latest world:', { id: world.id, started: world.started_at, ends: world.reset_at });
+        }
+      }
+      
+      // If no world exists or current world has ended, create a new one
+      if (!world || (world.reset_at && new Date(world.reset_at) < new Date())) {
+        console.log('🆕 Creating new world...');
+        const { data: newWorld, error: createError } = await supabase
+          .from('worlds')
+          .insert([
+            { 
+              total_blocks: 0,
+              unique_builders: 0
+            }
+          ])
+          .select()
+          .single();
+          
+        if (createError) throw createError;
+        world = newWorld;
+        console.log('✅ Created new world:', { id: world.id });
+      }
+      
+      if (world && typeof world === 'object' && 'id' in world) {
+        // Set the world ID and initialize
+        set({ worldId: world.id, currentView: 'world' });
+        localStorage.setItem('worldId', world.id);
+        localStorage.setItem('lastWorldId', world.id);
+        
+        console.log('✅ Joined world:', { id: world.id, started: world.started_at, ends: world.reset_at });
+        console.log('🕐 About to initialize world timer...');
+        
+        // Initialize world timer
+        await get().initializeWorldTimer(world.id);
+        
+        console.log('🕐 World timer initialization completed');
+        
+        // Load blocks from database
+        try {
+          const { data: blocks, error: blocksError } = await supabase
+            .from('blocks')
+            .select('*')
+            .eq('world_id', world.id);
+          
+          if (blocksError) throw blocksError;
+          
+          if (blocks) {
+            const blockMap = new Map<string, Block>();
+            console.log(`📦 Loading ${blocks.length} blocks from database...`);
+            blocks.forEach(block => {
+              blockMap.set(`${block.x},${block.y}`, {
+                type: block.block_type,
+                placedBy: block.placed_by,
+                placedAt: new Date(block.placed_at).getTime()
+              });
+            });
+            get().setBlocks(blockMap);
+          }
+        } catch (error: any) {
+          console.error('Failed to load blocks:', error.message);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to join world:', error.message);
+      throw error;
+    }
   }
 }));

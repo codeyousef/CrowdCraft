@@ -11,7 +11,9 @@ export const WorldTimer = () => {
     console.log('🔍 WorldTimer state:', { 
       worldStartTime, 
       worldEndTime,
-      timeUntilEnd: worldEndTime ? Math.max(0, Math.floor((new Date(worldEndTime).getTime() - Date.now()) / 1000)) : 'no end time'
+      timeUntilEnd: worldEndTime ? Math.max(0, Math.floor((new Date(worldEndTime).getTime() - Date.now()) / 1000)) : 'no end time',
+      hasStartTime: !!worldStartTime,
+      hasEndTime: !!worldEndTime
     });
   }, [worldStartTime, worldEndTime]);
 

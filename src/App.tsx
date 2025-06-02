@@ -25,7 +25,7 @@ interface DebugMessage {
 }
 
 function App() {
-  const { worldId, setWorldId } = useGameStore();
+  const { worldId, setWorldId, currentView, navigateToHomepage } = useGameStore();
   const [debugMessages, setDebugMessages] = useState<DebugMessage[]>([]);
   const [showDebug, setShowDebug] = useState(false);
   
@@ -73,7 +73,7 @@ function App() {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {!worldId ? (
+        {currentView === 'homepage' ? (
           <LandingPage />
         ) : (
           <>
@@ -81,7 +81,15 @@ function App() {
               <div className="bg-surface/80 backdrop-blur border-b border-border px-4 py-3">
                 <div className="container mx-auto">
                   <div className="flex items-center justify-between">
-                    <PlayerName />
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={navigateToHomepage}
+                        className="bg-surface hover:bg-surface/80 text-text-primary px-3 py-1 rounded-md text-sm transition-colors"
+                      >
+                        ← Home
+                      </button>
+                      <PlayerName />
+                    </div>
                     <PlayerStats />
                     <ConnectionStatus />
                   </div>

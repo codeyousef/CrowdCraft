@@ -4,46 +4,13 @@ import { supabase } from '../lib/supabase';
 import { TimelapseGallery } from './TimelapseGallery';
 
 export const LandingPage = () => {
-  const setWorldId = useGameStore(state => state.setWorldId);
-
-  const rejoinLastWorld = async () => {
-    const lastWorldId = localStorage.getItem('lastWorldId');
-    if (lastWorldId) {
-      const { data: world } = await supabase
-        .from('worlds')
-        .select('id')
-        .eq('id', lastWorldId)
-        .single();
-
-      if (world) {
-        setWorldId(world.id);
-        return true;
-      }
-    }
-    return false;
-  };
+  const { joinWorld } = useGameStore();
 
   const handleJoinWorld = async () => {
     try {
-      // Enable auto-join for future visits
-      localStorage.setItem('autoJoin', 'true');
-      
-      // Try to rejoin last world first
-      const rejoined = await rejoinLastWorld();
-      if (rejoined) return;
-
-      // Find world with less than 50 players
-      const { data: worlds, error } = await supabase
-        .from('worlds')
-        .select('id, unique_builders')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
-      
-      if (worlds && worlds[0]) {
-        setWorldId(worlds[0].id);
-      }
+      // Try to rejoin last world first, otherwise join any available world
+      const lastWorldId = localStorage.getItem('lastWorldId');
+      await joinWorld(lastWorldId || undefined);
     } catch (error) {
       console.error('Failed to join world:', error);
     }

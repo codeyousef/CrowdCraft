@@ -1,17 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { supabase } from '../lib/supabase';
 
 export const useWorldReset = (worldId: string | null) => {
   const { setWorldId, setBlocks, worldEndTime, setWorldTimes } = useGameStore();
+  const isResetting = useRef(false);
   
   useEffect(() => {
-    if (!worldId) return;
+    if (!worldId || !worldEndTime) return;
     
     const checkAndResetWorld = async () => {
-      if (worldEndTime && new Date(worldEndTime) <= new Date()) {
-        // Create new world
+      if (isResetting.current) return; // Prevent multiple resets
+      
+      const now = new Date();
+      const endTime = new Date(worldEndTime);
+      const timeRemaining = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000));
+      
+      console.log('🔍 Reset check:', { 
+        worldId, 
+        worldEndTime, 
+        timeRemaining: `${timeRemaining}s`,
+        hasExpired: endTime <= now 
+      });
+      
+      if (endTime <= now) {
+        isResetting.current = true;
+        console.log('⏰ Timer expired! Starting world reset process...');
+        
         try {
+          // Capture final screenshot before reset
+          console.log('📸 Capturing final world screenshot...');
+          
+          // Trigger timelapse generation - this will be handled by useTimelapse hook
+          
+          // Create new world
           const { data: newWorld, error } = await supabase
             .from('worlds')
             .insert({
@@ -28,13 +50,25 @@ export const useWorldReset = (worldId: string | null) => {
             setWorldId(newWorld.id);
             setWorldTimes(null, null); // Reset times for new world
             setBlocks(new Map()); // Clear blocks
+            
+            // Reset the flag after successful reset
+            setTimeout(() => {
+              isResetting.current = false;
+            }, 1000);
           }
         } catch (error: any) {
           console.error('Failed to create new world:', error.message);
+          isResetting.current = false;
         }
       }
     };
     
+    // Check immediately
     checkAndResetWorld();
-  }, [worldId, worldEndTime]);
+    
+    // Then check every 5 seconds to catch timer expiration
+    const interval = setInterval(checkAndResetWorld, 5000);
+    
+    return () => clearInterval(interval);
+  }, [worldId, worldEndTime, setWorldId, setBlocks, setWorldTimes]);
 };

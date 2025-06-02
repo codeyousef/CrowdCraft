@@ -10,6 +10,25 @@ export const usePresence = (worldId: string | null) => {
   useEffect(() => {
     if (!worldId) return;
     
+    // Fetch unique builders count for this world
+    const fetchUniqueBuilders = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('blocks')
+          .select('placed_by')
+          .eq('world_id', worldId);
+          
+        if (error) throw error;
+        
+        const uniqueUsers = new Set(data?.map(block => block.placed_by) || []);
+        setUniqueBuilders(uniqueUsers.size);
+      } catch (error) {
+        console.error('Failed to fetch unique builders:', error);
+      }
+    };
+    
+    fetchUniqueBuilders();
+    
     const channel = supabase.channel(`presence:${worldId}`, {
       config: {
         presence: {
@@ -42,4 +61,38 @@ export const usePresence = (worldId: string | null) => {
       supabase.removeChannel(channel);
     };
   }, [worldId, userName]);
+  
+  // Also listen for new blocks to update unique builders count
+  useEffect(() => {
+    if (!worldId) return;
+    
+    const subscription = supabase
+      .channel('unique-builders')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'blocks',
+        filter: `world_id=eq.${worldId}`
+      }, async () => {
+        // Refetch unique builders when new blocks are placed
+        try {
+          const { data, error } = await supabase
+            .from('blocks')
+            .select('placed_by')
+            .eq('world_id', worldId);
+            
+          if (error) throw error;
+          
+          const uniqueUsers = new Set(data?.map(block => block.placed_by) || []);
+          setUniqueBuilders(uniqueUsers.size);
+        } catch (error) {
+          console.error('Failed to update unique builders:', error);
+        }
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [worldId, setUniqueBuilders]);
 };

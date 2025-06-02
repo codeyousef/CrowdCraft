@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { Container, Sprite, Graphics, Stage, useApp } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 import { Block, GRID_SIZE, TILE_CONFIG } from '../types/game';
@@ -11,7 +11,6 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useGameStore } from '../store/gameStore';
 import { useTimelapse } from '../hooks/useTimelapse';
 import { TilePool } from '../lib/TilePool';
-import { useCallback, useRef, useMemo } from 'react';
 
 interface IsometricGridContentProps {
   textures: Record<string, PIXI.Texture>;
@@ -26,11 +25,15 @@ interface IsometricGridContentProps {
 }
 
 const IsometricGridContent = ({ textures, viewport, onTileHover, onTileClick, hoveredTile }: IsometricGridContentProps) => {
-  const { blocks } = useGameStore();
+  const { blocks, worldId } = useGameStore();
   const app = useApp();
   const containerRef = useRef<PIXI.Container>(null);
   const tilePoolRef = useRef<TilePool>();
   const frameRequestRef = useRef<number>();
+  
+  
+  // Initialize timelapse system with the PIXI app
+  useTimelapse(worldId, app);
   
   // Initialize TilePool
   useEffect(() => {
@@ -249,7 +252,6 @@ export const IsometricGrid = () => {
 
   // Subscribe to real-time updates
   useRealtimeBlocks(worldId || '');
-  useTimelapse(worldId, appRef.current || null);
 
   useEffect(() => {
     loadTextures()
@@ -274,6 +276,12 @@ export const IsometricGrid = () => {
     placeBlock(x, y);
   }, [placeBlock]);
 
+  useEffect(() => {
+    if (textures) {
+      console.log('🎮 Rendering PIXI Stage with textures loaded');
+    }
+  }, [textures]);
+
   if (!textures) {
     return <LoadingSpinner message={loadingMessage} error={loadError} />;
   }
@@ -283,7 +291,10 @@ export const IsometricGrid = () => {
       width={window.innerWidth}
       height={window.innerHeight}
       style={{ position: 'fixed', zIndex: 1 }}
-      onMount={app => { appRef.current = app; }}
+      onMount={app => { 
+        appRef.current = app; 
+        console.log('📱 PIXI app mounted, app reference set');
+      }}
       eventMode="static"
       options={{ 
         backgroundColor: 0x0F172A,

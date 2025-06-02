@@ -1,10 +1,12 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { GRID_SIZE } from '../types/game';
+import { useTimelapse } from '../hooks/useTimelapse';
 
 export const IsometricGrid = () => {
-  const { placeBlock, blocks, currentTool } = useGameStore();
+  const { placeBlock, blocks, currentTool, worldId } = useGameStore();
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // Grid constants
   const gridSize = 25;
@@ -21,6 +23,20 @@ export const IsometricGrid = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const mockAppRef = useRef<any>(null);
+  
+  // Create stable mock PIXI app object for timelapse compatibility
+  useEffect(() => {
+    if (canvasRef.current && !mockAppRef.current) {
+      mockAppRef.current = {
+        view: canvasRef.current,
+        renderer: { width: window.innerWidth, height: window.innerHeight }
+      };
+    }
+  }, []);
+  
+  // Initialize timelapse system
+  useTimelapse(worldId, mockAppRef.current);
 
   const handleTileClick = useCallback(async (x: number, y: number) => {
     console.log('🎲 Attempting block placement:', { x, y, currentTool });
@@ -176,6 +192,14 @@ export const IsometricGrid = () => {
         {/* Tiles and blocks */}
         {tiles}
       </div>
+      
+      {/* Hidden canvas for timelapse capture */}
+      <canvas 
+        ref={canvasRef}
+        width={window.innerWidth}
+        height={window.innerHeight}
+        style={{ display: 'none' }}
+      />
     </div>
   );
 };

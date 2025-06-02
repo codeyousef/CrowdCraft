@@ -5,15 +5,34 @@ export const ConnectionStatus = () => {
   const { connectionStatus } = useGameStore();
   
   return (
-    <div className="fixed top-4 right-4 flex items-center gap-2 bg-surface/80 backdrop-blur rounded-full px-3 py-1.5 text-sm">
+    <div style={{
+      position: 'fixed',
+      top: '60px',
+      right: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      backgroundColor: 'rgba(30, 41, 59, 0.8)',
+      backdropFilter: 'blur(8px)',
+      borderRadius: '20px',
+      padding: '6px 12px',
+      color: '#F8FAFC',
+      fontSize: '14px',
+      zIndex: 1000
+    }}>
       <div 
-        className={`w-2 h-2 rounded-full ${
-          connectionStatus === 'connected' ? 'bg-emerald-500' :
-          connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-          'bg-red-500'
-        }`} 
+        style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: 
+            connectionStatus === 'connected' ? '#10B981' :
+            connectionStatus === 'connecting' ? '#F59E0B' :
+            '#EF4444',
+          animation: connectionStatus === 'connecting' ? 'pulse 2s infinite' : 'none'
+        }}
       />
-      <span className="text-text-secondary">
+      <span>
         {connectionStatus === 'connected' ? 'Connected' :
          connectionStatus === 'connecting' ? 'Connecting...' :
          'Disconnected'}

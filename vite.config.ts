@@ -7,6 +7,16 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0',
     // Ensure we're using HTTP for local development
-    https: false
+    https: false,
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+    }
+  },
+  optimizeDeps: {
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util']
+  },
+  define: {
+    global: 'globalThis',
   }
 })
