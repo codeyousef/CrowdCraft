@@ -13,24 +13,31 @@ export const TimelapseGallery = () => {
   const [timelapses, setTimelapses] = useState<Timelapse[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Get public URL for snapshot
+  const getPublicUrl = (path: string) => {
+    const { data } = supabase.storage.from('timelapses').getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   useEffect(() => {
     const loadTimelapses = async () => {
       try {
         const { data, error } = await supabase
           .from('worlds')
-          .select(`
-            id,
-            created_at,
-            total_blocks,
-            unique_builders,
-            snapshot_url
-          `)
+          .select('id, created_at, total_blocks, unique_builders, snapshot_url')
           .not('snapshot_url', 'is', null)
           .order('created_at', { ascending: false })
           .limit(6);
 
         if (error) throw error;
-        setTimelapses(data || []);
+        
+        // Transform data to include public URLs
+        const timelapseData = (data || []).map(timelapse => ({
+          ...timelapse,
+          snapshot_url: timelapse.snapshot_url ? getPublicUrl(timelapse.snapshot_url) : null
+        }));
+        
+        setTimelapses(timelapseData);
       } catch (error) {
         console.error('Failed to load timelapses:', error);
       } finally {
@@ -77,20 +84,21 @@ export const TimelapseGallery = () => {
           <div className="aspect-video relative">
             <video
               className="w-full h-full object-cover"
-              src={timelapse.snapshot_url}
+              src={timelapse.snapshot_url || ''}
               loop
               muted
               autoPlay
               playsInline
+              controls
             />
           </div>
           <div className="p-4 space-y-2">
             <div className="flex items-center justify-between">
               <div className="text-text-primary">
-                <span className="font-semibold">{timelapse.unique_builders}</span> builders
+                <span className="font-semibold">{timelapse.unique_builders || 0}</span> builders
               </div>
               <div className="text-text-secondary">
-                <span className="font-semibold">{timelapse.total_blocks}</span> blocks
+                <span className="font-semibold">{timelapse.total_blocks || 0}</span> blocks
               </div>
             </div>
             <button
