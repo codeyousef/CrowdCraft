@@ -3,19 +3,22 @@ import { useGameStore } from '../store/gameStore';
 import { differenceInSeconds, formatDistance } from 'date-fns';
 
 export const WorldTimer = () => {
-  const { worldStartTime, worldEndTime } = useGameStore();
+  const worldStartTime = useGameStore(state => state.worldStartTime);
+  const worldEndTime = useGameStore(state => state.worldEndTime);
+  const worldId = useGameStore(state => state.worldId);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   
   // Debug logging
   useEffect(() => {
     console.log('🔍 WorldTimer state:', { 
+      worldId,
       worldStartTime, 
       worldEndTime,
       timeUntilEnd: worldEndTime ? Math.max(0, Math.floor((new Date(worldEndTime).getTime() - Date.now()) / 1000)) : 'no end time',
       hasStartTime: !!worldStartTime,
       hasEndTime: !!worldEndTime
     });
-  }, [worldStartTime, worldEndTime]);
+  }, [worldId, worldStartTime, worldEndTime]);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -39,12 +42,13 @@ export const WorldTimer = () => {
   }, [worldEndTime]);
 
   if (!worldStartTime || !worldEndTime) {
+    console.log('⚠️ WorldTimer: Missing timer data, showing join message', { worldStartTime, worldEndTime, worldId });
     return (
       <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 bg-surface/90 backdrop-blur-sm border border-border rounded-b-lg shadow-lg">
         <div className="px-6 py-3">
           <div className="flex flex-col items-center gap-2">
             <span className="text-xl font-semibold flex items-center gap-2">
-              ⏱️ Place the first block to start
+              ⏱️ {worldId ? 'Starting world timer...' : 'Place the first block to start'}
             </span>
           </div>
         </div>

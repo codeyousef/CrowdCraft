@@ -50,14 +50,19 @@ const loadStoredBlocks = (): Map<string, Block> => {
   return new Map();
 };
 
-export const useGameStore = create<GameState>((set, get) => ({
+export const useGameStore = create<GameState>((set, get) => {
+  const initialStartTime = localStorage.getItem('worldStartTime');
+  const initialEndTime = localStorage.getItem('worldEndTime');
+  console.log('🏪 Initial store state from localStorage:', { initialStartTime, initialEndTime });
+  
+  return {
   blocks: loadStoredBlocks(),
   currentTool: 'grass',
   userName: generateAnimalName(),
   activeUsers: new Set(),
   uniqueBuilders: 0,
-  worldStartTime: localStorage.getItem('worldStartTime'),
-  worldEndTime: localStorage.getItem('worldEndTime'),
+  worldStartTime: initialStartTime,
+  worldEndTime: initialEndTime,
   worldId: null,
   initializedWorldId: null,
   connectionStatus: 'connecting',
@@ -237,6 +242,9 @@ export const useGameStore = create<GameState>((set, get) => ({
           get().setWorldTimes(startTime, endTime);
           localStorage.setItem('autoJoin', 'true');
           console.log('⏰ Started world timer:', { startTime, endTime });
+          
+          // Force a state update to ensure components re-render
+          console.log('🔄 Forcing timer state update...');
         }
       } else {
         // Use existing times from database
@@ -341,18 +349,18 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
       
       if (world && typeof world === 'object' && 'id' in world) {
-        // Set the world ID and initialize
-        set({ worldId: world.id, currentView: 'world' });
-        localStorage.setItem('worldId', world.id);
-        localStorage.setItem('lastWorldId', world.id);
-        
         console.log('✅ Joined world:', { id: world.id, started: world.started_at, ends: world.reset_at });
         console.log('🕐 About to initialize world timer...');
         
-        // Initialize world timer
+        // Initialize world timer FIRST before setting view to 'world'
         await get().initializeWorldTimer(world.id);
         
         console.log('🕐 World timer initialization completed');
+        
+        // Now set the world ID and switch to world view
+        set({ worldId: world.id, currentView: 'world' });
+        localStorage.setItem('worldId', world.id);
+        localStorage.setItem('lastWorldId', world.id);
         
         // Load blocks from database
         try {
@@ -384,4 +392,4 @@ export const useGameStore = create<GameState>((set, get) => ({
       throw error;
     }
   }
-}));
+}});
