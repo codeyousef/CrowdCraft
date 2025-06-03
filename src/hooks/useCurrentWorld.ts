@@ -40,7 +40,7 @@ export const useCurrentWorld = () => {
       
       if (blocks) {
         const blockMap = new Map<string, Block>();
-        console.log(`📦 Loading ${blocks.length} blocks from database...`);
+        // console.log(`📦 Loading ${blocks.length} blocks from database...`);
         blocks.forEach(block => {
           blockMap.set(`${block.x},${block.y}`, {
             type: block.block_type,

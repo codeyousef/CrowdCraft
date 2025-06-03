@@ -18,6 +18,8 @@ import { useWorldReset } from './hooks/useWorldReset';
 import { useWorldHistory } from './hooks/useWorldHistory';
 import { LandingPage } from './components/LandingPage';
 import { PlayerName } from './components/PlayerName';
+import { useDevTimelapse } from './hooks/useDevTimelapse';
+import './utils/createTestSnapshot'; // Auto-creates test snapshot in dev
 
 interface DebugMessage {
   text: string;
@@ -37,6 +39,9 @@ function App() {
   useWorldReset(worldId);
   useWorldHistory(worldId);
   
+  // Use development timelapse handler
+  useDevTimelapse();
+  
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === '`' || (e.ctrlKey && e.key === 'd')) {
@@ -49,15 +54,19 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
-  // Override console.log to capture debug messages
+  // Temporarily re-enable console override for debugging timer issue
   useEffect(() => {
     const originalLog = console.log;
     console.log = (...args) => {
       originalLog.apply(console, args);
-      setDebugMessages(prev => [
-        ...prev,
-        { text: args.join(' '), timestamp: Date.now() }
-      ].slice(-100)); // Keep last 100 messages
+      // Only capture timer-related logs to avoid spam
+      const message = args.join(' ');
+      if (message.includes('timer') || message.includes('Timer') || message.includes('⏰') || message.includes('🔍')) {
+        setDebugMessages(prev => [
+          ...prev,
+          { text: message, timestamp: Date.now() }
+        ].slice(-20)); // Keep last 20 timer messages only
+      }
     };
     return () => { console.log = originalLog; };
   }, []);

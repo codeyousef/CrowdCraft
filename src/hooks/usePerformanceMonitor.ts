@@ -20,9 +20,10 @@ export const usePerformanceMonitor = () => {
           fpsRef.current.reduce((a, b) => a + b) / fpsRef.current.length
         );
         
-        if (avgFps < 55) {
-          console.warn(`⚠️ Low FPS: ${avgFps}`);
-        }
+        // Disable FPS warnings to prevent console spam feedback loop
+        // if (avgFps < 55) {
+        //   console.warn(`⚠️ Low FPS: ${avgFps}`);
+        // }
       }
       
       lastFrameRef.current = now;

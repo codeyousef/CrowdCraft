@@ -53,7 +53,6 @@ const loadStoredBlocks = (): Map<string, Block> => {
 export const useGameStore = create<GameState>((set, get) => {
   const initialStartTime = localStorage.getItem('worldStartTime');
   const initialEndTime = localStorage.getItem('worldEndTime');
-  console.log('🏪 Initial store state from localStorage:', { initialStartTime, initialEndTime });
   
   return {
   blocks: loadStoredBlocks(),
@@ -86,12 +85,6 @@ export const useGameStore = create<GameState>((set, get) => {
     set({ worldId: id });
   },
   setWorldTimes: (startTime: string | null, endTime: string | null) => {
-    console.log('🕐 Setting world times:', { 
-      startTime, 
-      endTime,
-      remaining: endTime ? Math.max(0, Math.floor((new Date(endTime).getTime() - Date.now()) / 1000)) : 'no end time',
-      willTriggerUpdate: startTime !== get().worldStartTime || endTime !== get().worldEndTime
-    });
     
     // Persist world times to localStorage
     if (startTime && endTime) {
@@ -116,10 +109,10 @@ export const useGameStore = create<GameState>((set, get) => {
 
   placeBlock: async (x: number, y: number) => {
     const key = `${x},${y}`;
-    const { currentTool, userName, blocks, worldId } = get();
+    const { currentTool, userName, blocks, worldId, worldStartTime, worldEndTime } = get();
     
     if (!worldId) {
-      console.warn('❌ Cannot place block: No active world');
+      // console.warn('❌ Cannot place block: No active world');
       return;
     }
     
@@ -127,6 +120,19 @@ export const useGameStore = create<GameState>((set, get) => {
     const existingBlock = blocks.get(key);
     if (existingBlock) {
       return;
+    }
+    
+    // Check if we need to initialize the timer
+    const needsTimer = !worldStartTime || !worldEndTime || 
+                      (worldEndTime && new Date(worldEndTime) <= new Date());
+    
+    if (needsTimer) {
+      console.log('🎯 Block placed - need to initialize/restart timer for world:', worldId);
+      console.log('🔍 Timer state:', { worldStartTime, worldEndTime, blocksCount: blocks.size });
+      await get().initializeWorldTimer(worldId);
+      console.log('✅ Timer initialization completed, checking store state...');
+      const { worldStartTime: newStartTime, worldEndTime: newEndTime } = get();
+      console.log('🔍 Store state after timer init:', { newStartTime, newEndTime });
     }
     
     const now = Date.now();
@@ -157,7 +163,7 @@ export const useGameStore = create<GameState>((set, get) => {
         
       if (error) throw error;
     } catch (error: any) {
-      console.error(`⚠️ Failed to save block to database: ${error.message}`);
+      // console.error(`⚠️ Failed to save block to database: ${error.message}`);
       // Don't rollback - keep the local block even if database save fails
     }
   },
@@ -187,11 +193,9 @@ export const useGameStore = create<GameState>((set, get) => {
       return;
     }
     
-    // Yield control at start
-    await new Promise(resolve => setTimeout(resolve, 0));
+    console.log('🔍 initializeWorldTimer called for world:', worldId);
     
     try {
-      console.log('🔍 initializeWorldTimer called for world:', worldId);
       const { data: worldData, error: worldError } = await supabase
         .from('worlds')
         .select('started_at, reset_at')
@@ -200,7 +204,6 @@ export const useGameStore = create<GameState>((set, get) => {
         
       if (worldError) throw worldError;
       
-      console.log('📊 World data from database:', worldData);
       
       // If this is the first time accessing this world (no started_at time), check localStorage first
       if (!worldData.started_at) {
@@ -208,7 +211,6 @@ export const useGameStore = create<GameState>((set, get) => {
         
         // If we already have timing data in the store/localStorage for this world, use it
         if (worldStartTime && worldEndTime) {
-          console.log('🔄 No timer in database but found in localStorage, updating database...');
           const { error } = await supabase
             .from('worlds')
             .update({ 
@@ -220,16 +222,13 @@ export const useGameStore = create<GameState>((set, get) => {
           if (error) {
             console.error('Failed to update database with localStorage times:', error);
           } else {
-            console.log('✅ Updated database with localStorage timer data');
           }
           // Keep existing times from localStorage
         } else {
-          console.log('🆕 No timer found anywhere, creating new 30-minute timer');
+          console.log('🆕 No timer found anywhere, creating new 15-second timer for debugging');
           const startTime = new Date().toISOString();
-          const endTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
-          
-          // Yield control before database update
-          await new Promise(resolve => setTimeout(resolve, 0));
+          const endTime = new Date(Date.now() + 15 * 1000).toISOString(); // 15 seconds for debugging
+          console.log('⏰ Created timer:', { startTime, endTime });
           
           // Update world with start and end times
           const { error } = await supabase
@@ -245,29 +244,49 @@ export const useGameStore = create<GameState>((set, get) => {
           if (error) throw error;
           
           // Set times in store and localStorage
+          console.log('🔄 Setting world times in store...');
           get().setWorldTimes(startTime, endTime);
+          console.log('✅ Timer set in store:', { startTime, endTime });
           localStorage.setItem('autoJoin', 'true');
-          console.log('⏰ Started world timer:', { startTime, endTime });
           
           // Force a state update to ensure components re-render
-          console.log('🔄 Forcing timer state update...');
         }
       } else {
-        // Use existing times from database
-        console.log('♻️ Found existing timer, restoring from database');
-        
-        // Check if the world has already expired
+        // Check if existing timer is still valid
         const timeRemaining = Math.max(0, Math.floor((new Date(worldData.reset_at).getTime() - Date.now()) / 1000));
-        if (timeRemaining <= 0) {
-          console.log('⚠️ WARNING: Restoring timer for already expired world, world reset should trigger soon');
-        }
         
-        get().setWorldTimes(worldData.started_at, worldData.reset_at);
-        console.log('⏰ Timer restored from database:', { 
-          started: worldData.started_at, 
-          ends: worldData.reset_at,
-          remaining: timeRemaining
-        });
+        if (timeRemaining > 0) {
+          console.log('♻️ Found valid existing timer, restoring from database');
+          get().setWorldTimes(worldData.started_at, worldData.reset_at);
+          console.log('⏰ Timer restored from database:', { 
+            started: worldData.started_at, 
+            ends: worldData.reset_at,
+            timeRemaining: timeRemaining + 's'
+          });
+        } else {
+          console.log('⏰ Existing timer has expired, creating new timer');
+          const startTime = new Date().toISOString();
+          const endTime = new Date(Date.now() + 30 * 1000).toISOString();
+          console.log('⏰ Created new timer:', { startTime, endTime });
+          
+          // Update world with new start and end times
+          const { error } = await supabase
+            .from('worlds')
+            .update({ 
+              started_at: startTime,
+              reset_at: endTime,
+              total_blocks: 0,
+              unique_builders: 0
+            })
+            .eq('id', worldId);
+            
+          if (error) throw error;
+          
+          // Set times in store and localStorage
+          console.log('🔄 Setting new world times in store...');
+          get().setWorldTimes(startTime, endTime);
+          console.log('✅ New timer set in store:', { startTime, endTime });
+        }
       }
       
       // Mark this world as initialized
@@ -303,13 +322,8 @@ export const useGameStore = create<GameState>((set, get) => {
   },
 
   joinWorld: async (targetWorldId?: string) => {
-    console.log('🌍 joinWorld called with:', { targetWorldId });
     
-    // Set loading state immediately to switch view
-    set({ currentView: 'world' });
-    
-    // Use setTimeout to make the heavy operations non-blocking
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Don't switch view immediately - let the components handle loading state
     
     try {
       let world = null;
@@ -327,29 +341,18 @@ export const useGameStore = create<GameState>((set, get) => {
           const isActive = !targetWorld.reset_at || new Date(targetWorld.reset_at) > new Date();
           if (isActive) {
             world = targetWorld;
-            console.log('✅ Joining specific world:', { id: world.id, started: world.started_at, ends: world.reset_at });
           } else {
-            console.log('⏰ Requested world has expired, will create new world:', { 
-              id: targetWorld.id, 
-              reset_at: targetWorld.reset_at,
-              expired: targetWorld.reset_at ? new Date(targetWorld.reset_at) <= new Date() : false
-            });
             // Clear the expired world from localStorage to avoid confusion
             localStorage.removeItem('lastWorldId');
           }
         } else if (targetError) {
-          console.log('❌ Failed to find requested world:', targetError.message);
           // Clear the invalid world ID from localStorage
           localStorage.removeItem('lastWorldId');
         }
       }
 
-      // Yield control before database query
-      await new Promise(resolve => setTimeout(resolve, 0));
-
       // If no specific world or it's not available, find the latest world
       if (!world) {
-        console.log('🔍 Finding latest world...');
         const { data: worlds, error: fetchError } = await supabase
           .from('worlds')
           .select('*')
@@ -360,16 +363,17 @@ export const useGameStore = create<GameState>((set, get) => {
       
         world = worlds?.[0];
         if (world) {
-          console.log('📥 Found latest world:', { id: world.id, started: world.started_at, ends: world.reset_at });
+          console.log('🌍 Found existing world:', { 
+            id: world.id, 
+            started_at: world.started_at, 
+            reset_at: world.reset_at,
+            hasTimer: !!(world.started_at && world.reset_at)
+          });
         }
       }
       
-      // Yield control before potential world creation
-      await new Promise(resolve => setTimeout(resolve, 0));
-      
       // If no world exists or current world has ended, create a new one
       if (!world || (world.reset_at && new Date(world.reset_at) < new Date())) {
-        console.log('🆕 Creating new world...');
         const { data: newWorld, error: createError } = await supabase
           .from('worlds')
           .insert([
@@ -383,28 +387,16 @@ export const useGameStore = create<GameState>((set, get) => {
           
         if (createError) throw createError;
         world = newWorld;
-        console.log('✅ Created new world:', { id: world.id });
       }
       
       if (world && typeof world === 'object' && 'id' in world) {
-        console.log('✅ Joined world:', { id: world.id, started: world.started_at, ends: world.reset_at });
-        console.log('🕐 About to initialize world timer...');
         
-        // Yield control before timer initialization
-        await new Promise(resolve => setTimeout(resolve, 0));
-        
-        // Initialize world timer FIRST before setting world ID
-        await get().initializeWorldTimer(world.id);
-        
-        console.log('🕐 World timer initialization completed');
-        
-        // Now set the world ID
-        set({ worldId: world.id });
-        localStorage.setItem('worldId', world.id);
-        localStorage.setItem('lastWorldId', world.id);
-        
-        // Yield control before loading blocks
-        await new Promise(resolve => setTimeout(resolve, 0));
+        // Check if world already has a timer and restore it
+        if (world.started_at && world.reset_at) {
+          console.log('🔄 Restoring existing timer from world data...');
+          get().setWorldTimes(world.started_at, world.reset_at);
+          console.log('✅ Timer restored:', { started_at: world.started_at, reset_at: world.reset_at });
+        }
         
         // Load blocks from database
         try {
@@ -417,7 +409,6 @@ export const useGameStore = create<GameState>((set, get) => {
           
           if (blocks) {
             const blockMap = new Map<string, Block>();
-            console.log(`📦 Loading ${blocks.length} blocks from database...`);
             blocks.forEach(block => {
               blockMap.set(`${block.x},${block.y}`, {
                 type: block.block_type,
@@ -430,6 +421,11 @@ export const useGameStore = create<GameState>((set, get) => {
         } catch (error: any) {
           console.error('Failed to load blocks:', error.message);
         }
+        
+        // Only NOW set the world ID and switch view after everything is loaded
+        set({ worldId: world.id, currentView: 'world' });
+        localStorage.setItem('worldId', world.id);
+        localStorage.setItem('lastWorldId', world.id);
       }
     } catch (error: any) {
       console.error('Failed to join world:', error.message);

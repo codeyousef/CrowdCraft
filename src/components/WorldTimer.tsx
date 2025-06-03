@@ -8,17 +8,6 @@ export const WorldTimer = () => {
   const worldId = useGameStore(state => state.worldId);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 WorldTimer state:', { 
-      worldId,
-      worldStartTime, 
-      worldEndTime,
-      timeUntilEnd: worldEndTime ? Math.max(0, Math.floor((new Date(worldEndTime).getTime() - Date.now()) / 1000)) : 'no end time',
-      hasStartTime: !!worldStartTime,
-      hasEndTime: !!worldEndTime
-    });
-  }, [worldId, worldStartTime, worldEndTime]);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -41,8 +30,11 @@ export const WorldTimer = () => {
     return () => clearInterval(interval);
   }, [worldEndTime]);
 
+  // Remove console logging to prevent spam
+  // console.log('🔍 WorldTimer render:', { worldId, worldStartTime, worldEndTime, remainingSeconds });
+  
   if (!worldStartTime || !worldEndTime) {
-    console.log('⚠️ WorldTimer: Missing timer data, showing join message', { worldStartTime, worldEndTime, worldId });
+    // console.log('⚠️ WorldTimer: Missing timer data');
     return (
       <div className="fixed top-0 left-1/2 -translate-x-1/2 z-50 bg-surface/90 backdrop-blur-sm border border-border rounded-b-lg shadow-lg">
         <div className="px-6 py-3">
@@ -62,7 +54,7 @@ export const WorldTimer = () => {
   // Calculate total duration from start and end times
   const totalDuration = worldStartTime && worldEndTime 
     ? differenceInSeconds(new Date(worldEndTime), new Date(worldStartTime))
-    : 30 * 60; // fallback to 30 minutes
+    : 30; // fallback to 30 seconds
     
   const progress = ((remainingSeconds || 0) / totalDuration) * 100;
 

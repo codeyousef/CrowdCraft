@@ -48,8 +48,9 @@ export const useTimelapse = (worldId: string | null, app: any) => {
     // Capture initial frame
     captureFrame();
     
-    // For testing with 15-second worlds, capture every 5 seconds
-    const captureInterval = setInterval(captureFrame, 5000);
+    // Capture frames based on environment
+    const captureIntervalMs = process.env.NODE_ENV === 'development' ? 5000 : 30000; // 5s in dev, 30s in prod
+    const captureInterval = setInterval(captureFrame, captureIntervalMs);
     
     return () => clearInterval(captureInterval);
   }, [worldId, app]); // Removed blocks from dependencies

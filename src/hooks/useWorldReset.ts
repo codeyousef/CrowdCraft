@@ -16,22 +16,15 @@ export const useWorldReset = (worldId: string | null) => {
       const endTime = new Date(worldEndTime);
       const timeRemaining = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000));
       
-      console.log('🔍 Reset check:', { 
-        worldId, 
-        worldEndTime, 
-        timeRemaining: `${timeRemaining}s`,
-        hasExpired: endTime <= now 
-      });
       
       if (endTime <= now) {
         isResetting.current = true;
-        console.log('⏰ Timer expired! Starting world reset process...');
         
         try {
           // Capture final screenshot before reset
-          console.log('📸 Capturing final world screenshot...');
           
-          // Trigger timelapse generation - this will be handled by useTimelapse hook
+          // Wait for snapshot creation to complete
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
           // Create new world
           const { data: newWorld, error } = await supabase
@@ -46,7 +39,6 @@ export const useWorldReset = (worldId: string | null) => {
           if (error) throw error;
           
           if (newWorld) {
-            console.log('🔄 World reset! New world ID:', newWorld.id);
             setWorldId(newWorld.id);
             setWorldTimes(null, null); // Reset times for new world
             setBlocks(new Map()); // Clear blocks

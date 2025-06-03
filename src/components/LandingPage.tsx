@@ -5,8 +5,12 @@ import { TimelapseGallery } from './TimelapseGallery';
 
 export const LandingPage = () => {
   const { joinWorld } = useGameStore();
+  const [isJoining, setIsJoining] = React.useState(false);
 
   const handleJoinWorld = async () => {
+    if (isJoining) return; // Prevent multiple clicks
+    
+    setIsJoining(true);
     try {
       // Try to rejoin last world first, otherwise join any available world
       const lastWorldId = localStorage.getItem('lastWorldId');
@@ -30,6 +34,8 @@ export const LandingPage = () => {
       localStorage.removeItem('worldEndTime');
       // Force reload to reset state
       window.location.reload();
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -73,9 +79,10 @@ export const LandingPage = () => {
 
         <button
           onClick={handleJoinWorld}
-          className="bg-primary hover:bg-primary-hover text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all transform hover:scale-105 active:scale-95"
+          disabled={isJoining}
+          className="bg-primary hover:bg-primary-hover disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-semibold py-4 px-8 rounded-lg text-lg transition-all transform hover:scale-105 active:scale-95 disabled:transform-none"
         >
-          {localStorage.getItem('lastWorldId') ? 'Return to Building' : 'Join a World'}
+          {isJoining ? 'Loading...' : (localStorage.getItem('lastWorldId') ? 'Return to Building' : 'Join a World')}
         </button>
 
         <div className="mt-16">

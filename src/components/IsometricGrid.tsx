@@ -266,12 +266,6 @@ export const IsometricGrid = () => {
   }, []);
 
   const handleTileClick = useCallback((x: number, y: number) => {
-    console.log('🎲 Attempting block placement:', {
-      coordinates: { x, y },
-      currentTool: useGameStore.getState().currentTool,
-      worldId: useGameStore.getState().worldId,
-      existingBlocks: useGameStore.getState().blocks.size
-    });
     
     placeBlock(x, y);
   }, [placeBlock]);

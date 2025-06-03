@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { SnapshotViewer } from './SnapshotViewer';
 
 interface Timelapse {
   id: string;
@@ -13,6 +14,7 @@ export const TimelapseGallery = () => {
   const [timelapses, setTimelapses] = useState<Timelapse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(null);
 
   // Get public URL for snapshot
   const getPublicUrl = (path: string) => {
@@ -33,11 +35,7 @@ export const TimelapseGallery = () => {
           .order('created_at', { ascending: false })
           .limit(10);
 
-        console.log('🔍 All worlds in database:', allWorlds);
-        console.log('🔍 Total worlds found:', allWorlds?.length || 0);
-        
         const worldsWithSnapshots = allWorlds?.filter(w => w.snapshot_url) || [];
-        console.log('🔍 Worlds with snapshots:', worldsWithSnapshots);
 
         const { data, error: supabaseError } = await supabase
           .from('worlds')
@@ -46,19 +44,22 @@ export const TimelapseGallery = () => {
           .order('created_at', { ascending: false })
           .limit(6);
 
-        console.log('🔍 Filtered query result:', data);
 
         if (supabaseError) {
           throw supabaseError;
         }
         
-        // Transform data to include public URLs
+        // Transform data to include public URLs (only for real storage URLs)
         const timelapseData = (data || []).map(timelapse => ({
           ...timelapse,
-          snapshot_url: timelapse.snapshot_url ? getPublicUrl(timelapse.snapshot_url) : null
+          // Keep dev/test URLs as-is, only transform real storage URLs
+          snapshot_url: timelapse.snapshot_url && 
+                       !timelapse.snapshot_url.startsWith('dev-') && 
+                       !timelapse.snapshot_url.startsWith('test-') 
+                       ? getPublicUrl(timelapse.snapshot_url) 
+                       : timelapse.snapshot_url
         }));
         
-        console.log('🔍 Final timelapse data:', timelapseData);
         setTimelapses(timelapseData);
       } catch (err) {
         console.error('Failed to load timelapses:', err);
@@ -269,13 +270,25 @@ export const TimelapseGallery = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-12">
         {timelapses.map((timelapse) => (
         <div key={timelapse.id} className="bg-surface rounded-lg overflow-hidden">
-          <div className="aspect-video relative bg-gray-800 flex items-center justify-center">
-            {/* Always show placeholder for mock timelapses since videos don't exist */}
-            <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary">
-              <div className="text-4xl mb-2">🎬</div>
-              <p className="text-sm">Timelapse Preview</p>
-              <p className="text-xs opacity-75">Video processing...</p>
-            </div>
+          <div 
+            className="aspect-video relative bg-gray-800 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setSelectedWorldId(timelapse.id)}
+          >
+            {/* Show development preview for dev snapshots */}
+            {timelapse.snapshot_url?.startsWith('dev-') || timelapse.snapshot_url?.startsWith('test-') ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary bg-gradient-to-br from-purple-900/20 to-blue-900/20">
+                <div className="text-5xl mb-3">🏗️</div>
+                <p className="text-sm font-semibold">Development Snapshot</p>
+                <p className="text-xs opacity-75 mt-1">World #{timelapse.id.slice(0, 8)}</p>
+                <p className="text-xs opacity-50 mt-2">Click to view</p>
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary">
+                <div className="text-4xl mb-2">🎬</div>
+                <p className="text-sm">Timelapse Preview</p>
+                <p className="text-xs opacity-75">Video processing...</p>
+              </div>
+            )}
           </div>
           <div className="p-4 space-y-2">
             <div className="flex items-center justify-between">
@@ -285,6 +298,9 @@ export const TimelapseGallery = () => {
               <div className="text-text-secondary">
                 <span className="font-semibold">{timelapse.total_blocks || 0}</span> blocks
               </div>
+            </div>
+            <div className="text-xs text-text-secondary opacity-75">
+              {new Date(timelapse.created_at).toLocaleDateString()} at {new Date(timelapse.created_at).toLocaleTimeString()}
             </div>
             <button
               onClick={() => handleShare(timelapse)}
@@ -296,6 +312,13 @@ export const TimelapseGallery = () => {
         </div>
       ))}
       </div>
+      
+      {selectedWorldId && (
+        <SnapshotViewer
+          worldId={selectedWorldId}
+          onClose={() => setSelectedWorldId(null)}
+        />
+      )}
     </div>
   );
 };
